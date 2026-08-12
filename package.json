@@ -6,19 +6,20 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:functions": "node scripts/build-functions.mjs",
+    "build:all": "npm run build && npm run build:functions",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@cloudbase/node-sdk": "^3.13.0",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "zod": "^3.24.1"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@cloudbase/node-sdk": "^3.18.3",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
@@ -26,10 +27,10 @@
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^4.3.4",
+    "esbuild": "^0.28.2",
     "jsdom": "^25.0.1",
     "typescript": "~5.7.2",
     "vite": "^6.0.5",
     "vitest": "^2.1.8"
   }
 }
-

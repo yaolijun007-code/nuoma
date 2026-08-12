@@ -3,11 +3,11 @@ import { ArrowLeft, ArrowRight, Clock3, HeartPulse, LockKeyhole, ShieldCheck, Sp
 import { BrandMark } from "./components/BrandMark";
 import { QuestionField } from "./components/QuestionField";
 import { ResultView } from "./components/ResultView";
-import { assessSurvey } from "./domain/assessment";
 import { clearDraft, loadDraft, saveDraft } from "./domain/draft";
 import { maleHealthV1 } from "./domain/questionnaire";
 import type { AnswerMap, AnswerValue, AssessmentResult } from "./domain/types";
 import { validateStep, type ValidationErrors } from "./domain/validation";
+import { submitSurvey } from "./services/submission";
 import "./styles.css";
 
 type Phase = "welcome" | "survey" | "result";
@@ -23,6 +23,10 @@ export default function App() {
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [confirmationId, setConfirmationId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const [clientSubmissionId] = useState(() => globalThis.crypto?.randomUUID?.() ?? `web-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const section = maleHealthV1.sections[sectionIndex];
   const progress = ((sectionIndex + 1) / maleHealthV1.sections.length) * 100;
@@ -44,7 +48,7 @@ export default function App() {
     });
   };
 
-  const goNext = () => {
+  const goNext = async () => {
     const nextErrors = validateStep(section.id, answers);
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
@@ -60,12 +64,20 @@ export default function App() {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    const assessment = assessSurvey(answers);
-    setResult(assessment);
-    setConfirmationId(`JS-${Date.now().toString(36).toUpperCase()}`);
-    clearDraft();
-    setPhase("result");
-    window.scrollTo({ top: 0 });
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const submitted = await submitSurvey(answers, clientSubmissionId, honeypot);
+      setResult(submitted.assessment);
+      setConfirmationId(submitted.confirmationId);
+      clearDraft();
+      setPhase("result");
+      window.scrollTo({ top: 0 });
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "提交失败，请稍后重试");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (phase === "result" && result) return <ResultView result={result} confirmationId={confirmationId} />;
@@ -123,7 +135,11 @@ export default function App() {
 
         {Object.keys(errors).length > 0 && <div className="error-summary" role="alert"><strong>还有内容需要完成</strong><span>请检查下方标记的项目。</span></div>}
 
-        <form onSubmit={(event) => { event.preventDefault(); goNext(); }} noValidate>
+        <form onSubmit={(event) => { event.preventDefault(); void goNext(); }} noValidate>
+          <div className="bot-field" aria-hidden="true">
+            <label htmlFor="website">网站</label>
+            <input id="website" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} />
+          </div>
           <div className="questions-stack">
             {section.questions.map((question) => (
               <QuestionField key={question.id} question={question} value={answers[question.id]} error={errors[question.id]} onChange={(value) => setAnswer(question.id, value)} />
@@ -133,10 +149,11 @@ export default function App() {
             <button type="button" className="secondary-button" disabled={sectionIndex === 0} onClick={() => setSectionIndex((index) => Math.max(0, index - 1))}>
               <ArrowLeft aria-hidden="true" /> 上一步
             </button>
-            <button type="submit" className="primary-button">
-              {sectionIndex === maleHealthV1.sections.length - 1 ? "完成评估" : "下一步"} <ArrowRight aria-hidden="true" />
+            <button type="submit" className="primary-button" disabled={submitting}>
+              {submitting ? "正在安全提交…" : sectionIndex === maleHealthV1.sections.length - 1 ? "完成评估" : "下一步"} <ArrowRight aria-hidden="true" />
             </button>
           </nav>
+          {submitError && <div className="error-summary submit-error" role="alert"><strong>暂时无法提交</strong><span>{submitError}</span></div>}
         </form>
         <p className="autosave">已在本机自动保存 · 提交后将清除本地草稿</p>
       </main>

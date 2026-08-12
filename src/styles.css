@@ -121,6 +121,8 @@
   .secondary-button { color: var(--ink-soft); background: oklch(1 0 0 / .8); border: 1px solid var(--line); }
   .secondary-button:disabled { opacity: .35; cursor: not-allowed; }
   .autosave { margin-top: 20px; color: var(--ink-soft); text-align: center; font-size: 12px; }
+  .bot-field { position: fixed; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+  .submit-error { margin-top: 14px; }
 
   .result-shell { width: min(100% - 32px, 1080px); margin: 0 auto; padding: clamp(28px, 6vw, 72px) 0; }
   .result-hero { position: relative; overflow: hidden; padding: clamp(30px, 6vw, 64px); border-radius: var(--radius-lg); color: white; background: radial-gradient(circle at 85% 15%, oklch(0.76 0.17 205 / .65), transparent 28%), linear-gradient(125deg, oklch(0.28 0.1 275), oklch(0.5 0.22 292)); box-shadow: var(--shadow); }

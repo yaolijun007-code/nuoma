@@ -1,0 +1,27 @@
+{
+  "version": "2.0",
+  "envId": "yuecheng-survey-d4fucklsf6b68aaf",
+  "functionRoot": "./functions",
+  "functions": [
+    {
+      "name": "submitSurvey",
+      "type": "HTTP",
+      "runtime": "Nodejs20.19",
+      "handler": "index.main",
+      "timeout": 10,
+      "memorySize": 256,
+      "installDependency": true,
+      "ignore": ["src", "*.test.*"]
+    },
+    {
+      "name": "adminSurvey",
+      "type": "HTTP",
+      "runtime": "Nodejs20.19",
+      "handler": "index.main",
+      "timeout": 10,
+      "memorySize": 256,
+      "installDependency": true,
+      "ignore": ["src", "*.test.*"]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "survey_sessions": { "read": false, "write": false },
+  "respondent_profiles": { "read": false, "write": false },
+  "survey_answers": { "read": false, "write": false },
+  "assessment_results": { "read": false, "write": false },
+  "audit_logs": { "read": false, "write": false }
+}
+
