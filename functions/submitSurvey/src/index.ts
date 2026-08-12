@@ -1,26 +1,27 @@
 import { init, SYMBOL_CURRENT_ENV } from "@cloudbase/node-sdk";
 import { createSubmissionService, SubmissionError, type PersistedSubmission } from "../../../src/domain/submission";
+import { collections } from "../../../src/domain/collections";
 
 const app = init({ env: SYMBOL_CURRENT_ENV });
 const db = app.database();
 
 const persistence = {
   async find(clientSubmissionId: string) {
-    const sessions = await db.collection("survey_sessions").where({ clientSubmissionId }).limit(1).get();
+    const sessions = await db.collection(collections.sessions).where({ clientSubmissionId }).limit(1).get();
     const session = sessions.data[0];
     if (!session) return null;
-    const results = await db.collection("assessment_results").where({ sessionId: session._id }).limit(1).get();
+    const results = await db.collection(collections.assessments).where({ sessionId: session._id }).limit(1).get();
     const assessment = results.data[0]?.assessment;
     return assessment ? { confirmationId: session.confirmationId, assessment } : null;
   },
   async save(record: PersistedSubmission) {
-    const sessionResult = await db.collection("survey_sessions").add({ data: record.session });
+    const sessionResult = await db.collection(collections.sessions).add(record.session);
     const sessionId = sessionResult.id;
     await Promise.all([
-      db.collection("respondent_profiles").add({ data: { sessionId, ...record.identity } }),
-      db.collection("survey_answers").add({ data: { sessionId, answers: record.healthAnswers } }),
-      db.collection("assessment_results").add({ data: { sessionId, assessment: record.assessment } }),
-      db.collection("audit_logs").add({ data: { sessionId, action: "public_submission", createdAt: record.session.submittedAt } }),
+      db.collection(collections.profiles).add({ sessionId, ...record.identity }),
+      db.collection(collections.answers).add({ sessionId, answers: record.healthAnswers }),
+      db.collection(collections.assessments).add({ sessionId, assessment: record.assessment }),
+      db.collection(collections.auditLogs).add({ sessionId, action: "public_submission", createdAt: record.session.submittedAt }),
     ]);
   },
 };
@@ -60,4 +61,3 @@ export async function main(event: Record<string, unknown>) {
     return response(500, { error: "暂时无法提交，请稍后重试", code: "INTERNAL_ERROR" }, allowedOrigin);
   }
 }
-

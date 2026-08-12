@@ -52,6 +52,16 @@ function parsePayload(input: unknown): SubmissionPayload {
   if (!payload.answers || typeof payload.answers !== "object" || Array.isArray(payload.answers)) {
     throw new SubmissionError("INVALID_PAYLOAD", "问卷答案格式不正确");
   }
+  if (JSON.stringify(payload.answers).length > 50_000) {
+    throw new SubmissionError("INVALID_PAYLOAD", "提交内容超出限制");
+  }
+  for (const [key, value] of Object.entries(payload.answers)) {
+    if (!allowedAnswerIds.has(key)) continue;
+    if (typeof value === "string" && value.length > 2_000) throw new SubmissionError("INVALID_PAYLOAD", "文本内容超出限制");
+    if (Array.isArray(value) && (value.length > 20 || value.some((item) => typeof item !== "string" || item.length > 80))) {
+      throw new SubmissionError("INVALID_PAYLOAD", "选项内容格式不正确");
+    }
+  }
   const errors = maleHealthV1.sections.flatMap((section) => Object.values(validateStep(section.id, payload.answers!)));
   if (errors.length) throw new SubmissionError("INVALID_PAYLOAD", "问卷尚未完整填写");
   return payload as SubmissionPayload;
@@ -99,4 +109,3 @@ export function createSubmissionService(persistence: SubmissionPersistence) {
     },
   };
 }
-

@@ -31,6 +31,13 @@ describe("createSubmissionService", () => {
     await expect(service.submit(payload({ answers }))).rejects.toMatchObject({ code: "INVALID_PAYLOAD" });
   });
 
+  it("rejects oversized and polluted payloads", async () => {
+    const service = createSubmissionService({ find: vi.fn(), save: vi.fn() });
+    const answers = validAnswers();
+    answers.mainChange = "长".repeat(2001);
+    await expect(service.submit(payload({ answers }))).rejects.toMatchObject({ code: "INVALID_PAYLOAD" });
+  });
+
   it("returns an existing submission idempotently", async () => {
     const find = vi.fn().mockResolvedValue({ confirmationId: "JS-EXISTING", assessment: { domains: [], hasRedFlag: false, redFlags: [] } });
     const save = vi.fn();
@@ -61,4 +68,3 @@ describe("createSubmissionService", () => {
     expect(response.assessment.domains.every((item) => item.level === "clinical_priority")).toBe(true);
   });
 });
-

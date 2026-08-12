@@ -309,6 +309,16 @@ function parsePayload(input) {
   if (!payload.answers || typeof payload.answers !== "object" || Array.isArray(payload.answers)) {
     throw new SubmissionError("INVALID_PAYLOAD", "\u95EE\u5377\u7B54\u6848\u683C\u5F0F\u4E0D\u6B63\u786E");
   }
+  if (JSON.stringify(payload.answers).length > 5e4) {
+    throw new SubmissionError("INVALID_PAYLOAD", "\u63D0\u4EA4\u5185\u5BB9\u8D85\u51FA\u9650\u5236");
+  }
+  for (const [key, value] of Object.entries(payload.answers)) {
+    if (!allowedAnswerIds.has(key)) continue;
+    if (typeof value === "string" && value.length > 2e3) throw new SubmissionError("INVALID_PAYLOAD", "\u6587\u672C\u5185\u5BB9\u8D85\u51FA\u9650\u5236");
+    if (Array.isArray(value) && (value.length > 20 || value.some((item) => typeof item !== "string" || item.length > 80))) {
+      throw new SubmissionError("INVALID_PAYLOAD", "\u9009\u9879\u5185\u5BB9\u683C\u5F0F\u4E0D\u6B63\u786E");
+    }
+  }
   const errors = maleHealthV1.sections.flatMap((section) => Object.values(validateStep(section.id, payload.answers)));
   if (errors.length) throw new SubmissionError("INVALID_PAYLOAD", "\u95EE\u5377\u5C1A\u672A\u5B8C\u6574\u586B\u5199");
   return payload;
@@ -353,26 +363,35 @@ function createSubmissionService(persistence2) {
   };
 }
 
+// src/domain/collections.ts
+var collections = {
+  sessions: "health_survey_sessions",
+  profiles: "health_respondent_profiles",
+  answers: "health_survey_answers",
+  assessments: "health_assessment_results",
+  auditLogs: "health_audit_logs"
+};
+
 // functions/submitSurvey/src/index.ts
 var app = (0, import_node_sdk.init)({ env: import_node_sdk.SYMBOL_CURRENT_ENV });
 var db = app.database();
 var persistence = {
   async find(clientSubmissionId) {
-    const sessions = await db.collection("survey_sessions").where({ clientSubmissionId }).limit(1).get();
+    const sessions = await db.collection(collections.sessions).where({ clientSubmissionId }).limit(1).get();
     const session = sessions.data[0];
     if (!session) return null;
-    const results = await db.collection("assessment_results").where({ sessionId: session._id }).limit(1).get();
+    const results = await db.collection(collections.assessments).where({ sessionId: session._id }).limit(1).get();
     const assessment = results.data[0]?.assessment;
     return assessment ? { confirmationId: session.confirmationId, assessment } : null;
   },
   async save(record) {
-    const sessionResult = await db.collection("survey_sessions").add({ data: record.session });
+    const sessionResult = await db.collection(collections.sessions).add(record.session);
     const sessionId = sessionResult.id;
     await Promise.all([
-      db.collection("respondent_profiles").add({ data: { sessionId, ...record.identity } }),
-      db.collection("survey_answers").add({ data: { sessionId, answers: record.healthAnswers } }),
-      db.collection("assessment_results").add({ data: { sessionId, assessment: record.assessment } }),
-      db.collection("audit_logs").add({ data: { sessionId, action: "public_submission", createdAt: record.session.submittedAt } })
+      db.collection(collections.profiles).add({ sessionId, ...record.identity }),
+      db.collection(collections.answers).add({ sessionId, answers: record.healthAnswers }),
+      db.collection(collections.assessments).add({ sessionId, assessment: record.assessment }),
+      db.collection(collections.auditLogs).add({ sessionId, action: "public_submission", createdAt: record.session.submittedAt })
     ]);
   }
 };

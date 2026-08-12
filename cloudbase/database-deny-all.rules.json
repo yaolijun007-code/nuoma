@@ -1,8 +1,7 @@
 {
-  "survey_sessions": { "read": false, "write": false },
-  "respondent_profiles": { "read": false, "write": false },
-  "survey_answers": { "read": false, "write": false },
-  "assessment_results": { "read": false, "write": false },
-  "audit_logs": { "read": false, "write": false }
+  "health_survey_sessions": { "read": false, "write": false },
+  "health_respondent_profiles": { "read": false, "write": false },
+  "health_survey_answers": { "read": false, "write": false },
+  "health_assessment_results": { "read": false, "write": false },
+  "health_audit_logs": { "read": false, "write": false }
 }
-

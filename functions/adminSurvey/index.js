@@ -52,16 +52,25 @@ function createAdminService(repository2, allowedUids2) {
   };
 }
 
+// src/domain/collections.ts
+var collections = {
+  sessions: "health_survey_sessions",
+  profiles: "health_respondent_profiles",
+  answers: "health_survey_answers",
+  assessments: "health_assessment_results",
+  auditLogs: "health_audit_logs"
+};
+
 // functions/adminSurvey/src/index.ts
 var app = (0, import_node_sdk.init)({ env: import_node_sdk.SYMBOL_CURRENT_ENV });
 var db = app.database();
 var command = db.command;
 var repository = {
   async list(limit) {
-    const sessions = await db.collection("survey_sessions").orderBy("submittedAt", "desc").limit(limit).get();
+    const sessions = await db.collection(collections.sessions).orderBy("submittedAt", "desc").limit(limit).get();
     const ids = sessions.data.map((record) => record._id);
     if (!ids.length) return [];
-    const profiles = await db.collection("respondent_profiles").where({ sessionId: command.in(ids) }).get();
+    const profiles = await db.collection(collections.profiles).where({ sessionId: command.in(ids) }).get();
     const profileBySession = new Map(profiles.data.map((profile) => [profile.sessionId, profile]));
     return sessions.data.map((session) => {
       const profile = profileBySession.get(session._id) || {};
@@ -77,23 +86,23 @@ var repository = {
     });
   },
   async detail(confirmationId) {
-    const sessions = await db.collection("survey_sessions").where({ confirmationId }).limit(1).get();
+    const sessions = await db.collection(collections.sessions).where({ confirmationId }).limit(1).get();
     const session = sessions.data[0];
     if (!session) return null;
     const [profiles, answers, results] = await Promise.all([
-      db.collection("respondent_profiles").where({ sessionId: session._id }).limit(1).get(),
-      db.collection("survey_answers").where({ sessionId: session._id }).limit(1).get(),
-      db.collection("assessment_results").where({ sessionId: session._id }).limit(1).get()
+      db.collection(collections.profiles).where({ sessionId: session._id }).limit(1).get(),
+      db.collection(collections.answers).where({ sessionId: session._id }).limit(1).get(),
+      db.collection(collections.assessments).where({ sessionId: session._id }).limit(1).get()
     ]);
     return { session, identity: profiles.data[0] || null, answers: answers.data[0]?.answers || null, assessment: results.data[0]?.assessment || null };
   },
   async updateStatus(confirmationId, status, adminUid) {
-    const sessions = await db.collection("survey_sessions").where({ confirmationId }).limit(1).get();
+    const sessions = await db.collection(collections.sessions).where({ confirmationId }).limit(1).get();
     const session = sessions.data[0];
     if (!session) throw new Error("\u8BB0\u5F55\u4E0D\u5B58\u5728");
     await Promise.all([
-      db.collection("survey_sessions").doc(session._id).update({ status, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }),
-      db.collection("audit_logs").add({ data: { sessionId: session._id, action: "status_update", status, adminUid, createdAt: (/* @__PURE__ */ new Date()).toISOString() } })
+      db.collection(collections.sessions).doc(session._id).update({ status, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }),
+      db.collection(collections.auditLogs).add({ sessionId: session._id, action: "status_update", status, adminUid, createdAt: (/* @__PURE__ */ new Date()).toISOString() })
     ]);
   }
 };

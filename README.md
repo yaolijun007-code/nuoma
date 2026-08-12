@@ -9,7 +9,9 @@ npm install
 npm run dev
 ```
 
-未配置 `VITE_SUBMIT_ENDPOINT` 时，开发环境只生成本地预览结果，不会上传健康数据。生产构建必须配置CloudBase HTTP函数地址，否则最终提交会显示明确错误且不会伪造成功。
+未配置 `VITE_SUBMIT_ENDPOINT` 时，开发环境只生成本地预览结果，不会上传健康数据。仓库中的 `.env.production` 已配置当前CloudBase公开提交地址；更换环境时需同步更新该文件，否则最终提交会显示明确错误且不会伪造成功。
+
+当前公开体验地址：<https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com/health-survey/>
 
 ## 验证
 
@@ -30,4 +32,3 @@ npm run build:all
 - `docs/cloudbase-deployment.md`：云端配置、安全与部署步骤。
 
 问卷不输出衰老总分、身体年龄或疾病诊断。医学安全题任一为“是”时，常规健康管理建议会被临床优先提示替代。
-

@@ -5,17 +5,20 @@
   "functions": [
     {
       "name": "submitSurvey",
-      "type": "HTTP",
+      "type": "Event",
       "runtime": "Nodejs20.19",
       "handler": "index.main",
       "timeout": 10,
       "memorySize": 256,
       "installDependency": true,
+      "envVariables": {
+        "ALLOWED_ORIGIN": "https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com"
+      },
       "ignore": ["src", "*.test.*"]
     },
     {
       "name": "adminSurvey",
-      "type": "HTTP",
+      "type": "Event",
       "runtime": "Nodejs20.19",
       "handler": "index.main",
       "timeout": 10,
