@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import config from "../../cloudbaserc.json";
-import viteConfig from "../../vite.config";
+import viteConfig, { resolveBrandBase, resolveBrandMetadata } from "../../vite.config";
 
 describe("CloudBase function configuration", () => {
   it("deploys event handlers behind SCF gateway routes", () => {
@@ -12,6 +12,16 @@ describe("CloudBase function configuration", () => {
 
   it("builds static assets inside the isolated health-survey path", () => {
     expect(viteConfig.base).toBe("/health-survey/");
+  });
+
+  it("resolves independent paths and metadata for both brands", () => {
+    expect(resolveBrandBase("hospital")).toBe("/health-survey/");
+    expect(resolveBrandBase("nuoma-yuanyi")).toBe("/nuoma-yuanyi-survey/");
+    expect(resolveBrandMetadata("nuoma-yuanyi")).toMatchObject({
+      title: "健康与功能状态问卷｜诺玛元一",
+      description: "诺玛元一健康与功能状态问卷",
+    });
+    expect(() => resolveBrandBase("unknown")).toThrow("未知问卷品牌");
   });
 
   it("passes documents directly to the server-side CloudBase SDK", () => {

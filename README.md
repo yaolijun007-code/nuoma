@@ -1,6 +1,6 @@
-# 建始民族医院健康与功能状态问卷
+# 健康与功能状态问卷
 
-面向40—55岁男性的公开健康与功能状态问卷。项目提供移动端优先的卡片式填写体验、55道编号题、48小时本地草稿、八维非诊断性状态画像、医学红旗优先处理，以及CloudBase服务端分集合存储。
+本项目同时提供“建始民族医院”和“诺玛元一”两套独立品牌问卷。两者共享经过验证的55道题、八维非诊断性画像、医学红旗规则和CloudBase安全存储，但使用独立访问路径、页面品牌、问卷版本和48小时本地草稿。
 
 ## 本地运行
 
@@ -9,9 +9,17 @@ npm install
 npm run dev
 ```
 
+本地预览诺玛元一版本：
+
+```bash
+VITE_SURVEY_BRAND=nuoma-yuanyi npm run dev
+```
+
 未配置 `VITE_SUBMIT_ENDPOINT` 时，开发环境只生成本地预览结果，不会上传健康数据。仓库中的 `.env.production` 已配置当前CloudBase公开提交地址；更换环境时需同步更新该文件，否则最终提交会显示明确错误且不会伪造成功。
 
 当前公开体验地址：<https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com/health-survey/>
+
+诺玛元一公开地址：<https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com/nuoma-yuanyi-survey/>
 
 ## 验证
 
@@ -20,6 +28,8 @@ npm test
 npm run typecheck
 npm run build:all
 ```
+
+`npm run build` 生成医院版 `dist/`；`npm run build:nuoma-yuanyi` 生成诺玛元一版 `dist-nuoma-yuanyi/`。
 
 ## 项目结构
 

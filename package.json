@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "VITE_SURVEY_BRAND=hospital tsc -b && VITE_SURVEY_BRAND=hospital vite build",
+    "build:hospital": "npm run build",
+    "build:nuoma-yuanyi": "VITE_SURVEY_BRAND=nuoma-yuanyi tsc -b && VITE_SURVEY_BRAND=nuoma-yuanyi vite build --outDir dist-nuoma-yuanyi",
     "build:functions": "node scripts/build-functions.mjs",
-    "build:all": "npm run build && npm run build:functions",
+    "build:all": "npm run build && npm run build:nuoma-yuanyi && npm run build:functions",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",
