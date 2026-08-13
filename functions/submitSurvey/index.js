@@ -87,12 +87,12 @@ var yesNo = [
   { value: "0", label: "\u5426", score: 0 },
   { value: "1", label: "\u662F", score: 1 }
 ];
-var single = (number, prompt, options = frequency) => ({
+var single = (number, prompt, options2 = frequency) => ({
   id: `q${number}`,
   number,
   prompt,
   type: "single",
-  options,
+  options: options2,
   required: true
 });
 var maleHealthV1 = {
@@ -298,6 +298,233 @@ function validateStep(sectionId, answers) {
   return validateQuestions(section.questions.map(({ id }) => id), answers);
 }
 
+// src/hospital/surveyDefinition.ts
+var legacyQuestions = new Map(
+  maleHealthV1.sections.flatMap((section) => section.questions).map((question) => [question.id, question])
+);
+var cloneLegacy = (id, overrides = {}) => {
+  const question = legacyQuestions.get(id);
+  if (!question) throw new Error(`\u7F3A\u5C11\u65E2\u6709\u9898\u76EE\uFF1A${id}`);
+  return { ...question, ...overrides, options: overrides.options ?? question.options };
+};
+var options = (labels) => labels.map((label, index) => ({ value: String(index), label }));
+var hospitalModules = [
+  { id: "identity", index: 1, title: "\u57FA\u672C\u4FE1\u606F", introTitle: "\u5148\u4ECE\u57FA\u672C\u4FE1\u606F\u5F00\u59CB", introDescription: "\u53EA\u9700\u586B\u5199\u59D3\u540D\u4E0E\u624B\u673A\u53F7\uFF0C\u65E5\u671F\u5C06\u7531\u7CFB\u7EDF\u81EA\u52A8\u8BB0\u5F55\u3002" },
+  { id: "overall", index: 2, title: "\u5F53\u524D\u5173\u6CE8\u4E0E\u6574\u4F53\u72B6\u6001", introTitle: "\u5148\u4E86\u89E3\u60A8\u6700\u5173\u6CE8\u7684\u53D8\u5316", introDescription: "\u8FD9\u4E9B\u9009\u62E9\u5C06\u5E2E\u52A9\u5065\u5EB7\u7BA1\u7406\u5E08\u786E\u5B9A\u540E\u7EED\u6C9F\u901A\u91CD\u70B9\u3002" },
+  { id: "energy", index: 3, title: "\u7CBE\u529B\u4E0E\u6062\u590D", introTitle: "\u63A5\u4E0B\u6765\u4E86\u89E3\u60A8\u7684\u7CBE\u529B\u4E0E\u6062\u590D", introDescription: "\u8BF7\u6839\u636E\u8FC7\u53BB4\u5468\u7684\u771F\u5B9E\u611F\u53D7\u9009\u62E9\u3002" },
+  { id: "sleep", index: 4, title: "\u7761\u7720\u4E0E\u65E5\u95F4\u72B6\u6001", introTitle: "\u63A5\u4E0B\u6765\u4E86\u89E3\u60A8\u7684\u7761\u7720\u72B6\u6001", introDescription: "\u7761\u7720\u4E0E\u7CBE\u529B\u3001\u4EE3\u8C22\u3001\u6062\u590D\u548C\u65E5\u95F4\u529F\u80FD\u5BC6\u5207\u76F8\u5173\u3002" },
+  { id: "mind", index: 5, title: "\u538B\u529B\u4E0E\u8BA4\u77E5", introTitle: "\u63A5\u4E0B\u6765\u4E86\u89E3\u538B\u529B\u4E0E\u8BA4\u77E5\u72B6\u6001", introDescription: "\u8BF7\u56DE\u60F3\u8FC7\u53BB4\u5468\u5DE5\u4F5C\u3001\u4F11\u606F\u4E0E\u4EA4\u6D41\u65F6\u7684\u72B6\u6001\u3002" },
+  { id: "gut", index: 6, title: "\u80C3\u80A0\u4E0E\u6392\u4FBF", introTitle: "\u63A5\u4E0B\u6765\u4E86\u89E3\u80C3\u80A0\u4E0E\u6392\u4FBF", introDescription: "\u8FD9\u4E9B\u4F53\u9A8C\u4F1A\u4E0E\u540E\u7EED\u5FAE\u751F\u6001\u68C0\u6D4B\u6570\u636E\u4E00\u8D77\u7EFC\u5408\u5206\u6790\u3002" },
+  { id: "metabolism", index: 7, title: "\u4EE3\u8C22\u4E0E\u4F53\u91CD", introTitle: "\u63A5\u4E0B\u6765\u4E86\u89E3\u4EE3\u8C22\u4E0E\u4F53\u91CD\u53D8\u5316", introDescription: "\u53EA\u9700\u6839\u636E\u65E5\u5E38\u4F53\u611F\u4F5C\u7B54\uFF0C\u4E0D\u9700\u8981\u53C2\u8003\u4F53\u68C0\u7ED3\u679C\u3002" },
+  { id: "movement", index: 8, title: "\u5FC3\u80BA\u3001\u8FD0\u52A8\u4E0E\u808C\u8089", introTitle: "\u63A5\u4E0B\u6765\u4E86\u89E3\u8EAB\u4F53\u529F\u80FD\u50A8\u5907", introDescription: "\u8BF7\u6BD4\u8F83\u8FD1\u671F\u6D3B\u52A8\u3001\u529B\u91CF\u4E0E\u8FD0\u52A8\u6062\u590D\u72B6\u6001\u3002" },
+  { id: "male", index: 9, title: "\u7537\u6027\u6D3B\u529B\u4E0E\u6392\u5C3F", introTitle: "\u7537\u6027\u6D3B\u529B\u4E0E\u6392\u5C3F\u72B6\u6001", introDescription: "\u4EE5\u4E0B\u5C5E\u4E8E\u7537\u6027\u5065\u5EB7\u5E38\u89C4\u8BC4\u4F30\u4FE1\u606F\uFF0C\u4EC5\u7528\u4E8E\u7EFC\u5408\u5065\u5EB7\u72B6\u6001\u5206\u6790\u3002" },
+  { id: "lifestyle", index: 10, title: "\u751F\u6D3B\u65B9\u5F0F\u4E0E\u533B\u5B66\u5B89\u5168", introTitle: "\u6700\u540E\u4E86\u89E3\u751F\u6D3B\u65B9\u5F0F\u4E0E\u5B89\u5168\u4FE1\u606F", introDescription: "\u8FD9\u90E8\u5206\u5C06\u5E2E\u52A9\u6211\u4EEC\u5B89\u6392\u540E\u7EED\u5065\u5EB7\u7BA1\u7406\u4E0E\u4EBA\u5DE5\u786E\u8BA4\u3002" }
+];
+var intro = (module2) => ({
+  id: `intro:${module2.id}`,
+  kind: "intro",
+  moduleId: module2.id,
+  title: module2.introTitle,
+  description: module2.introDescription,
+  tone: module2.tone,
+  autoAdvanceMs: 780
+});
+var page = (moduleId, question) => ({ id: question.id, kind: "question", moduleId, question });
+var regular = (moduleId, from, to) => Array.from({ length: to - from + 1 }, (_, index) => page(moduleId, cloneLegacy(`q${from + index}`, { autoAdvance: true, subtitle: "\u8BF7\u6839\u636E\u8FC7\u53BB4\u5468\u5B9E\u9645\u60C5\u51B5\u9009\u62E9" })));
+var topConcernOptions = options([
+  "\u7CBE\u529B\u4E0D\u8DB3",
+  "\u7761\u7720",
+  "\u4F53\u91CD\u6216\u8179\u90E8\u8102\u80AA",
+  "\u6392\u4FBF\u6216\u80C3\u80A0\u4E0D\u9002",
+  "\u538B\u529B\u4E0E\u60C5\u7EEA",
+  "\u8BB0\u5FC6\u529B\u6216\u6CE8\u610F\u529B",
+  "\u8FD0\u52A8\u80FD\u529B",
+  "\u808C\u8089\u529B\u91CF",
+  "\u8170\u80CC\u6216\u5173\u8282\u4E0D\u9002",
+  "\u7537\u6027\u6D3B\u529B",
+  "\u6392\u5C3F\u95EE\u9898",
+  "\u996E\u9152\u540E\u7684\u8EAB\u4F53\u6062\u590D"
+]);
+var pages = [];
+for (const module2 of hospitalModules) {
+  pages.push(intro(module2));
+  if (module2.id === "identity") {
+    pages.push(
+      page("identity", { id: "name", prompt: "\u8BF7\u95EE\u60A8\u7684\u59D3\u540D\u662F\uFF1F", subtitle: "\u7528\u4E8E\u9662\u5185\u5065\u5EB7\u8BB0\u5F55\u5339\u914D", type: "text", required: true, placeholder: "\u8BF7\u8F93\u5165\u771F\u5B9E\u59D3\u540D", autocomplete: "name" }),
+      page("identity", { id: "phone", prompt: "\u8BF7\u586B\u5199\u60A8\u7684\u624B\u673A\u53F7\u7801", subtitle: "\u7528\u4E8E\u8BB0\u5F55\u67E5\u8BE2\u4E0E\u533B\u52A1\u4EBA\u5458\u540E\u7EED\u8054\u7CFB", type: "phone", required: true, placeholder: "\u8BF7\u8F93\u516511\u4F4D\u624B\u673A\u53F7", autocomplete: "tel" })
+    );
+  }
+  if (module2.id === "overall") {
+    pages.push(
+      page("overall", { id: "topConcerns", prompt: "\u76EE\u524D\u6700\u5E0C\u671B\u4F18\u5148\u6539\u5584\u54EA\u4E9B\u95EE\u9898\uFF1F", subtitle: "\u8BF7\u9009\u62E93\u9879", type: "multi", required: true, minSelections: 3, maxSelections: 3, layout: "grid", options: topConcernOptions }),
+      page("overall", { id: "mainChange", prompt: "\u6700\u8FD1\u534A\u5E74\uFF0C\u60A8\u611F\u53D7\u6700\u660E\u663E\u7684\u8EAB\u4F53\u53D8\u5316\u662F\uFF1F", type: "single", required: true, autoAdvance: true, options: options(["\u7CBE\u529B\u4E0B\u964D", "\u7761\u7720\u53D8\u5DEE", "\u8179\u90E8\u66F4\u5BB9\u6613\u957F\u8089", "\u80C3\u80A0\u6216\u6392\u4FBF\u53D8\u5316", "\u538B\u529B\u6216\u60C5\u7EEA\u53D8\u5316", "\u6CE8\u610F\u529B\u6216\u8BB0\u5FC6\u4E0B\u964D", "\u8FD0\u52A8\u80FD\u529B\u4E0B\u964D", "\u529B\u91CF\u4E0B\u964D", "\u8170\u80CC\u6216\u5173\u8282\u4E0D\u9002", "\u7537\u6027\u6D3B\u529B\u4E0B\u964D", "\u6392\u5C3F\u53D8\u5316", "\u6CA1\u6709\u660E\u663E\u53D8\u5316"]) }),
+      ...regular("overall", 1, 3)
+    );
+  }
+  if (module2.id === "energy") pages.push(...regular("energy", 4, 8));
+  if (module2.id === "sleep") pages.push(...regular("sleep", 9, 14));
+  if (module2.id === "mind") pages.push(...regular("mind", 15, 19));
+  if (module2.id === "gut") {
+    pages.push(
+      page("gut", cloneLegacy("q20", { prompt: "\u8FC7\u53BB4\u5468\uFF0C\u60A8\u7684\u6392\u4FBF\u901A\u5E38\u5C5E\u4E8E\u54EA\u79CD\u60C5\u51B5\uFF1F", autoAdvance: true, subtitle: "\u8BF7\u9009\u62E9\u6700\u7B26\u5408\u65E5\u5E38\u60C5\u51B5\u7684\u4E00\u9879", options: options(["\u6BCF\u59292\u6B21\u6216\u4EE5\u4E0A\uFF0C\u6BD4\u8F83\u89C4\u5F8B", "\u901A\u5E38\u6BCF\u59291\u6B21", "\u901A\u5E38\u6BCF2\u59291\u6B21", "\u6BCF3\u5929\u6216\u66F4\u4E451\u6B21", "\u9891\u7387\u53D8\u5316\u8F83\u5927\u3001\u4E0D\u89C4\u5F8B"]) })),
+      ...regular("gut", 21, 25),
+      page("gut", { id: "q25Foods", prompt: "\u54EA\u4E9B\u98DF\u7269\u6BD4\u8F83\u5BB9\u6613\u5F15\u8D77\u4E0D\u9002\uFF1F", subtitle: "\u53EF\u591A\u9009", type: "multi", required: true, minSelections: 1, layout: "grid", visibleWhen: { questionId: "q25", operator: "equals", values: ["3", "4"] }, options: options(["\u4E73\u5236\u54C1", "\u9762\u98DF/\u5C0F\u9EA6", "\u8C46\u7C7B", "\u6D0B\u8471/\u849C", "\u8F9B\u8FA3\u98DF\u7269", "\u6CB9\u817B\u98DF\u7269", "\u9152\u7CBE", "\u90E8\u5206\u6C34\u679C", "\u6D77\u9C9C", "\u575A\u679C", "\u6682\u4E0D\u786E\u5B9A"]) })
+    );
+  }
+  if (module2.id === "metabolism") pages.push(...regular("metabolism", 26, 29));
+  if (module2.id === "movement") pages.push(...regular("movement", 30, 34));
+  if (module2.id === "male") {
+    pages.push(...Array.from({ length: 6 }, (_, index) => {
+      const number = 35 + index;
+      return page("male", cloneLegacy(`q${number}`, { autoAdvance: true, allowSkip: number <= 37, subtitle: "\u8BF7\u6839\u636E\u5B9E\u9645\u60C5\u51B5\u9009\u62E9" }));
+    }));
+  }
+  if (module2.id === "lifestyle") {
+    pages.push(
+      page("lifestyle", { id: "workStatus", prompt: "\u60A8\u76EE\u524D\u7684\u804C\u4E1A\u72B6\u6001\u662F\uFF1F", type: "single", required: true, autoAdvance: true, options: options(["\u89C4\u5F8B\u65E5\u95F4\u5DE5\u4F5C", "\u7ECF\u5E38\u52A0\u73ED", "\u5012\u73ED\u6216\u591C\u73ED", "\u5DE5\u4F5C\u65F6\u95F4\u4E0D\u89C4\u5F8B", "\u81EA\u7531\u804C\u4E1A", "\u5176\u4ED6/\u4E0D\u56FA\u5B9A"]) }),
+      ...regular("lifestyle", 41, 44),
+      page("lifestyle", { id: "q44DrinkType", prompt: "\u60A8\u5E73\u65F6\u4E3B\u8981\u996E\u7528\u54EA\u7C7B\u9152\uFF1F", type: "single", required: true, autoAdvance: true, visibleWhen: { questionId: "q44", operator: "notEquals", values: ["0"] }, options: options(["\u767D\u9152", "\u5564\u9152", "\u8461\u8404\u9152", "\u9EC4\u9152", "\u6D0B\u9152/\u70C8\u9152", "\u591A\u79CD"]) }),
+      ...regular("lifestyle", 45, 46),
+      page("lifestyle", cloneLegacy("q47", { prompt: "\u8FC7\u53BB4\u5468\uFF0C\u4EE5\u4E0B\u54EA\u4E9B\u98DF\u7269\u60A8\u57FA\u672C\u6BCF\u5468\u90FD\u4F1A\u5403\uFF1F", subtitle: "\u53EF\u591A\u9009", type: "multi", minSelections: 1, autoAdvance: false, layout: "grid", exclusiveOption: "5", options: options(["\u852C\u83DC", "\u6C34\u679C", "\u5168\u8C37\u7269/\u6742\u7CAE", "\u8C46\u7C7B/\u8C46\u5236\u54C1", "\u575A\u679C/\u79CD\u5B50", "\u4E0A\u8FF0\u98DF\u7269\u5E73\u65F6\u90FD\u6BD4\u8F83\u5C11"]) })),
+      page("lifestyle", cloneLegacy("q48", { subtitle: "\u53EF\u591A\u9009", minSelections: 1, autoAdvance: false, layout: "grid", exclusiveOption: "10" })),
+      page("lifestyle", { id: "q48AntibioticWhen", prompt: "\u6700\u8FD1\u4E00\u6B21\u4F7F\u7528\u6297\u751F\u7D20\u5927\u7EA6\u662F\u4EC0\u4E48\u65F6\u5019\uFF1F", type: "single", required: true, autoAdvance: true, visibleWhen: { questionId: "q48", operator: "includes", values: ["0"] }, options: options(["2\u5468\u4EE5\u5185", "2\u20144\u5468", "1\u20143\u4E2A\u6708", "\u8BB0\u4E0D\u6E05"]) }),
+      { id: "intro:safety", kind: "intro", moduleId: "lifestyle", title: "\u533B\u5B66\u5B89\u5168\u4FE1\u606F", description: "\u4EE5\u4E0B\u4FE1\u606F\u4E0D\u53C2\u4E0E\u5065\u5EB7\u8BC4\u5206\uFF0C\u4EC5\u7528\u4E8E\u5224\u65AD\u662F\u5426\u9700\u8981\u533B\u52A1\u4EBA\u5458\u8FDB\u4E00\u6B65\u4E86\u89E3\u3002", tone: "safety" },
+      ...Array.from({ length: 7 }, (_, index) => {
+        const number = 49 + index;
+        return page("lifestyle", cloneLegacy(`q${number}`, { autoAdvance: false, confirmRequired: number === 55, tone: "safety", subtitle: "\u4EE5\u4E0B\u4FE1\u606F\u4E0D\u53C2\u4E0E\u5065\u5EB7\u8BC4\u5206" }));
+      }),
+      page("lifestyle", { id: "twelveWeekGoals", prompt: "\u672A\u676512\u5468\uFF0C\u60A8\u6700\u613F\u610F\u5F00\u59CB\u505A\u54EA\u4E9B\u6539\u53D8\uFF1F", subtitle: "\u6700\u591A\u9009\u62E93\u9879", type: "multi", required: true, minSelections: 1, maxSelections: 3, layout: "grid", options: options(["\u66F4\u89C4\u5F8B\u5730\u5B89\u6392\u7761\u7720", "\u6BCF\u5468\u589E\u52A0\u6709\u6C27\u8FD0\u52A8", "\u6BCF\u5468\u589E\u52A0\u529B\u91CF\u8BAD\u7EC3", "\u51CF\u5C11\u996E\u9152", "\u51CF\u5C11\u591C\u5BB5\u548C\u8FC7\u665A\u8FDB\u98DF", "\u589E\u52A0\u852C\u83DC\u3001\u5168\u8C37\u7269\u548C\u8C46\u7C7B", "\u8C03\u6574\u4F53\u91CD\u548C\u8170\u56F4", "\u8BB0\u5F55\u6392\u4FBF\u548C\u80C3\u80A0\u53CD\u5E94", "\u7BA1\u7406\u5DE5\u4F5C\u538B\u529B", "\u51CF\u5C11\u4E45\u5750", "\u6309\u8BA1\u5212\u5B8C\u6210\u5FAE\u751F\u6001\u5065\u5EB7\u7BA1\u7406", "\u5B9A\u671F\u8BB0\u5F55\u8EAB\u4F53\u53D8\u5316"]) }),
+      page("lifestyle", { id: "singleImprovement", prompt: "\u5982\u679C\u672A\u676512\u5468\u53EA\u80FD\u4F18\u5148\u770B\u5230\u4E00\u9879\u6539\u5584\uFF0C\u60A8\u6700\u5E0C\u671B\u662F\u54EA\u4E00\u9879\uFF1F", type: "single", required: true, autoAdvance: false, optionsFromAnswerId: "topConcerns", options: [] })
+    );
+  }
+}
+var hospitalSurvey = {
+  version: "male-health-v1.0",
+  modules: hospitalModules,
+  pages
+};
+function findHospitalQuestion(id) {
+  const page2 = hospitalSurvey.pages.find((item) => item.kind === "question" && item.id === id);
+  return page2?.kind === "question" ? page2.question : void 0;
+}
+
+// src/hospital/navigation.ts
+function isVisible(question, answers) {
+  const rule = question.visibleWhen;
+  if (!rule) return true;
+  const answer = answers[rule.questionId];
+  if (rule.operator === "includes") return Array.isArray(answer) && rule.values.some((value) => answer.includes(value));
+  if (rule.operator === "notEquals") return !rule.values.includes(String(answer ?? ""));
+  return rule.values.includes(String(answer ?? ""));
+}
+function withDynamicOptions(page2, answers) {
+  if (page2.kind !== "question" || !page2.question.optionsFromAnswerId) return page2;
+  const source = findHospitalQuestion(page2.question.optionsFromAnswerId);
+  const selected = answers[page2.question.optionsFromAnswerId];
+  const values = Array.isArray(selected) ? selected : [];
+  return {
+    ...page2,
+    question: {
+      ...page2.question,
+      options: source?.options?.filter((option) => values.includes(option.value)) ?? []
+    }
+  };
+}
+function getVisibleSurveyPages(answers) {
+  return hospitalSurvey.pages.filter((page2) => page2.kind === "intro" || isVisible(page2.question, answers)).map((page2) => withDynamicOptions(page2, answers));
+}
+function pruneHiddenAnswers(answers) {
+  const visibleIds = new Set(getVisibleSurveyPages(answers).map((page2) => page2.id));
+  const conditionalIds = hospitalSurvey.pages.filter((page2) => page2.kind === "question" && page2.question.visibleWhen).map((page2) => page2.id);
+  const next = { ...answers };
+  for (const id of conditionalIds) if (!visibleIds.has(id)) delete next[id];
+  return next;
+}
+
+// src/hospital/normalize.ts
+var questionIds = new Set(
+  hospitalSurvey.pages.filter((page2) => page2.kind === "question").map((page2) => page2.id)
+);
+function q47Score(value) {
+  if (!Array.isArray(value) || value.includes("5")) return "4";
+  const count = new Set(value).size;
+  if (count >= 5) return "0";
+  if (count === 4) return "1";
+  if (count === 3) return "2";
+  if (count >= 1) return "3";
+  return "4";
+}
+function optionLabel(questionId, value) {
+  return findHospitalQuestion(questionId)?.options?.find((option) => option.value === value)?.label ?? "";
+}
+function normalizeHospitalAnswers(input) {
+  const answers = pruneHiddenAnswers(input);
+  const healthAnswers = {};
+  for (const [id, value] of Object.entries(answers)) {
+    if (questionIds.has(id) && id !== "name" && id !== "phone") healthAnswers[id] = value;
+  }
+  healthAnswers.date = String(answers.date ?? "");
+  healthAnswers.workStatusOther = "";
+  healthAnswers.topConcernsOther = "";
+  healthAnswers.q25Food = "";
+  healthAnswers.q44Drink = optionLabel("q44DrinkType", answers.q44DrinkType);
+  healthAnswers.q48Details = "";
+  healthAnswers.twelveWeekGoalsOther = "";
+  const selectedFoods = Array.isArray(answers.q47) ? answers.q47 : [];
+  const derivedQ47 = q47Score(selectedFoods);
+  healthAnswers.q47Foods = selectedFoods;
+  healthAnswers.q47 = derivedQ47;
+  const sensitiveAnswers = {};
+  for (const id of ["q35", "q36", "q37"]) {
+    const value = answers[id];
+    if (value === "__skip__") {
+      healthAnswers[id] = null;
+      sensitiveAnswers[id] = { answered: false, value: null };
+    } else {
+      sensitiveAnswers[id] = { answered: true, value: String(value ?? "") };
+    }
+  }
+  healthAnswers.sensitiveAnswers = sensitiveAnswers;
+  const assessmentAnswers = Object.fromEntries(
+    Object.entries(healthAnswers).filter(([, value]) => value === null || typeof value === "string" || typeof value === "number" || Array.isArray(value))
+  );
+  assessmentAnswers.q47 = derivedQ47;
+  const phone = String(answers.phone ?? "");
+  return {
+    identity: { name: String(answers.name ?? "").trim().slice(0, 80), phone, phoneLast4: phone.slice(-4), age: null },
+    healthAnswers,
+    assessmentAnswers
+  };
+}
+
+// src/hospital/validation.ts
+var isEmpty2 = (value) => value === void 0 || value === null || value === "" || Array.isArray(value) && value.length === 0;
+function validateHospitalQuestion(question, answers) {
+  const value = answers[question.id];
+  if (question.required && isEmpty2(value)) return question.type === "text" || question.type === "phone" ? "\u8BF7\u586B\u5199\u6B64\u9879" : "\u8BF7\u9009\u62E9\u4E00\u9879";
+  if (question.type === "phone" && !/^1[3-9]\d{9}$/.test(String(value ?? ""))) return "\u8BF7\u8F93\u5165\u6709\u6548\u768411\u4F4D\u4E2D\u56FD\u5927\u9646\u624B\u673A\u53F7\u7801";
+  if (question.id === "name" && !String(value ?? "").trim()) return "\u8BF7\u586B\u5199\u59D3\u540D";
+  if (question.type === "multi" && Array.isArray(value)) {
+    if (question.minSelections && value.length < question.minSelections) return `\u8BF7\u81F3\u5C11\u9009\u62E9${question.minSelections}\u9879`;
+    if (question.maxSelections && value.length > question.maxSelections) return `\u6700\u591A\u9009\u62E9${question.maxSelections}\u9879`;
+  }
+  if (question.optionsFromAnswerId) {
+    const source = answers[question.optionsFromAnswerId];
+    if (!Array.isArray(source) || !source.includes(String(value ?? ""))) return "\u8BF7\u9009\u62E9\u524D\u9762\u5DF2\u5173\u6CE8\u7684\u4E00\u9879";
+  }
+  return void 0;
+}
+function validateHospitalSubmission(answers) {
+  const errors = {};
+  for (const page2 of getVisibleSurveyPages(answers)) {
+    if (page2.kind !== "question") continue;
+    const error = validateHospitalQuestion(page2.question, answers);
+    if (error) errors[page2.id] = error;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(answers.date ?? ""))) errors.date = "\u586B\u5199\u65E5\u671F\u65E0\u6548";
+  return errors;
+}
+
 // src/domain/submission.ts
 var SubmissionError = class extends Error {
   constructor(code, message) {
@@ -306,7 +533,11 @@ var SubmissionError = class extends Error {
   }
   code;
 };
-var allowedAnswerIds = new Set(maleHealthV1.sections.flatMap((section) => section.questions.map((question) => question.id)));
+var allowedAnswerIds = /* @__PURE__ */ new Set([
+  ...maleHealthV1.sections.flatMap((section) => section.questions.map((question) => question.id)),
+  ...hospitalSurvey.pages.filter((page2) => page2.kind === "question").map((page2) => page2.id),
+  "date"
+]);
 var supportedQuestionnaireVersions = /* @__PURE__ */ new Set([
   maleHealthV1.version,
   "nuoma-yuanyi-male-health-v1.0"
@@ -334,7 +565,8 @@ function parsePayload(input) {
       throw new SubmissionError("INVALID_PAYLOAD", "\u9009\u9879\u5185\u5BB9\u683C\u5F0F\u4E0D\u6B63\u786E");
     }
   }
-  const errors = maleHealthV1.sections.flatMap((section) => Object.values(validateStep(section.id, payload.answers)));
+  const mobileHospitalPayload = typeof payload.answers.phone === "string";
+  const errors = mobileHospitalPayload ? Object.values(validateHospitalSubmission(payload.answers)) : maleHealthV1.sections.flatMap((section) => Object.values(validateStep(section.id, payload.answers)));
   if (errors.length) throw new SubmissionError("INVALID_PAYLOAD", "\u95EE\u5377\u5C1A\u672A\u5B8C\u6574\u586B\u5199");
   return payload;
 }
@@ -348,18 +580,31 @@ function createSubmissionService(persistence2) {
       const payload = parsePayload(input);
       const existing = await persistence2.find(payload.clientSubmissionId);
       if (existing) return existing;
-      const sanitized = Object.fromEntries(
-        Object.entries(payload.answers).filter(([id2]) => allowedAnswerIds.has(id2))
-      );
-      const identity = {
-        name: String(payload.answers.name).trim().slice(0, 80),
-        age: Number(payload.answers.age),
-        phoneLast4: String(payload.answers.phoneLast4)
-      };
-      delete sanitized.name;
-      delete sanitized.age;
-      delete sanitized.phoneLast4;
-      const assessment = assessSurvey(sanitized);
+      const mobileHospitalPayload = typeof payload.answers.phone === "string";
+      let identity;
+      let healthAnswers;
+      let assessmentAnswers;
+      if (mobileHospitalPayload) {
+        const normalized = normalizeHospitalAnswers(payload.answers);
+        identity = normalized.identity;
+        healthAnswers = normalized.healthAnswers;
+        assessmentAnswers = normalized.assessmentAnswers;
+      } else {
+        const sanitized = Object.fromEntries(
+          Object.entries(payload.answers).filter(([id2]) => allowedAnswerIds.has(id2))
+        );
+        identity = {
+          name: String(payload.answers.name).trim().slice(0, 80),
+          age: Number(payload.answers.age),
+          phoneLast4: String(payload.answers.phoneLast4)
+        };
+        delete sanitized.name;
+        delete sanitized.age;
+        delete sanitized.phoneLast4;
+        healthAnswers = sanitized;
+        assessmentAnswers = sanitized;
+      }
+      const assessment = assessSurvey(assessmentAnswers);
       const id = confirmationId();
       await persistence2.save({
         session: {
@@ -370,7 +615,7 @@ function createSubmissionService(persistence2) {
           hasRedFlag: assessment.hasRedFlag
         },
         identity,
-        healthAnswers: sanitized,
+        healthAnswers,
         assessment
       });
       return { confirmationId: id, assessment };
@@ -386,6 +631,55 @@ var collections = {
   assessments: "health_assessment_results",
   auditLogs: "health_audit_logs"
 };
+
+// functions/submitSurvey/src/wecom.ts
+function safeInline(value) {
+  return value.replace(/[\r\n<>`\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+}
+function maskPhone(phone) {
+  if (!phone || !/^1\d{10}$/.test(phone)) return "\u672A\u63D0\u4F9B";
+  return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
+}
+function buildWeComMarkdown(record) {
+  const status = record.session.hasRedFlag ? '<font color="warning">\u5EFA\u8BAE\u4F18\u5148\u4EBA\u5DE5\u786E\u8BA4</font>' : '<font color="info">\u5DF2\u5B8C\u6210\u91C7\u96C6</font>';
+  return [
+    "### \u5EFA\u59CB\u6C11\u65CF\u533B\u9662\uFF5C\u65B0\u5065\u5EB7\u95EE\u5377",
+    `> \u63D0\u4EA4\u72B6\u6001\uFF1A${status}`,
+    `> \u59D3\u540D\uFF1A${safeInline(record.identity.name)}`,
+    `> \u624B\u673A\uFF1A${maskPhone(record.identity.phone)}`,
+    `> \u8BB0\u5F55\u7F16\u53F7\uFF1A${safeInline(record.session.confirmationId)}`,
+    `> \u63D0\u4EA4\u65F6\u95F4\uFF1A${safeInline(record.session.submittedAt)}`,
+    "",
+    "\u8BF7\u5728\u9662\u5185\u7CFB\u7EDF\u6838\u5B9E\u5B8C\u6574\u4FE1\u606F\uFF1B\u7FA4\u5185\u901A\u77E5\u4E0D\u5C55\u793A\u5177\u4F53\u5065\u5EB7\u7B54\u6848\u3002"
+  ].join("\n");
+}
+function validateWebhook(webhookUrl) {
+  let url;
+  try {
+    url = new URL(webhookUrl);
+  } catch {
+    throw new Error("\u4F01\u4E1A\u5FAE\u4FE1\u901A\u77E5\u5730\u5740\u65E0\u6548");
+  }
+  if (url.protocol !== "https:" || url.hostname !== "qyapi.weixin.qq.com" || url.pathname !== "/cgi-bin/webhook/send" || !url.searchParams.get("key")) {
+    throw new Error("\u4F01\u4E1A\u5FAE\u4FE1\u901A\u77E5\u5730\u5740\u65E0\u6548");
+  }
+  return url;
+}
+async function sendWeComNotification(webhookUrl, markdown, fetcher = fetch) {
+  const url = validateWebhook(webhookUrl);
+  try {
+    const response2 = await fetcher(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ msgtype: "markdown", markdown: { content: markdown } }),
+      signal: AbortSignal.timeout(5e3)
+    });
+    const result = await response2.json();
+    if (!response2.ok || result.errcode !== 0) throw new Error("rejected");
+  } catch {
+    throw new Error("\u4F01\u4E1A\u5FAE\u4FE1\u901A\u77E5\u5931\u8D25");
+  }
+}
 
 // functions/submitSurvey/src/index.ts
 var app = (0, import_node_sdk.init)({ env: import_node_sdk.SYMBOL_CURRENT_ENV });
@@ -408,6 +702,31 @@ var persistence = {
       db.collection(collections.assessments).add({ sessionId, assessment: record.assessment }),
       db.collection(collections.auditLogs).add({ sessionId, action: "public_submission", createdAt: record.session.submittedAt })
     ]);
+    let notificationStatus = "not_applicable";
+    if (record.identity.phone) {
+      const webhookUrl = process.env.HOSPITAL_WECHAT_WEBHOOK_URL;
+      if (!webhookUrl) {
+        notificationStatus = "not_configured";
+      } else {
+        try {
+          await sendWeComNotification(webhookUrl, buildWeComMarkdown(record));
+          notificationStatus = "sent";
+        } catch {
+          notificationStatus = "failed";
+          console.error("hospital WeCom notification failed");
+        }
+      }
+    }
+    try {
+      await db.collection(collections.auditLogs).add({
+        sessionId,
+        action: "hospital_wecom_notification",
+        status: notificationStatus,
+        createdAt: (/* @__PURE__ */ new Date()).toISOString()
+      });
+    } catch {
+      console.error("hospital notification audit write failed");
+    }
   }
 };
 var service = createSubmissionService(persistence);
