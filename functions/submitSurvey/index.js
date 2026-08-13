@@ -298,11 +298,17 @@ var SubmissionError = class extends Error {
   code;
 };
 var allowedAnswerIds = new Set(maleHealthV1.sections.flatMap((section) => section.questions.map((question) => question.id)));
+var supportedQuestionnaireVersions = /* @__PURE__ */ new Set([
+  maleHealthV1.version,
+  "nuoma-yuanyi-male-health-v1.0"
+]);
 function parsePayload(input) {
   if (!input || typeof input !== "object") throw new SubmissionError("INVALID_PAYLOAD", "\u63D0\u4EA4\u5185\u5BB9\u683C\u5F0F\u4E0D\u6B63\u786E");
   const payload = input;
   if (payload.honeypot) throw new SubmissionError("BOT_REJECTED", "\u8BF7\u6C42\u5DF2\u62D2\u7EDD");
-  if (payload.questionnaireVersion !== maleHealthV1.version) throw new SubmissionError("INVALID_PAYLOAD", "\u95EE\u5377\u7248\u672C\u4E0D\u53D7\u652F\u6301");
+  if (!payload.questionnaireVersion || !supportedQuestionnaireVersions.has(payload.questionnaireVersion)) {
+    throw new SubmissionError("INVALID_PAYLOAD", "\u95EE\u5377\u7248\u672C\u4E0D\u53D7\u652F\u6301");
+  }
   if (!payload.clientSubmissionId || !/^[a-zA-Z0-9-]{16,64}$/.test(payload.clientSubmissionId)) {
     throw new SubmissionError("INVALID_PAYLOAD", "\u63D0\u4EA4\u6807\u8BC6\u65E0\u6548");
   }

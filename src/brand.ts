@@ -12,6 +12,7 @@ export interface SurveyBrand {
   pageTitle: string;
   pageDescription: string;
   consentOwner: string;
+  identityDescription: string;
 }
 
 export const brandRegistry: Record<SurveyBrandId, SurveyBrand> = {
@@ -27,6 +28,7 @@ export const brandRegistry: Record<SurveyBrandId, SurveyBrand> = {
     pageTitle: "健康与功能状态问卷｜建始民族医院",
     pageDescription: "建始民族医院健康与功能状态问卷",
     consentOwner: "院方",
+    identityDescription: "信息仅用于院内健康评估与记录匹配。",
   },
   "nuoma-yuanyi": {
     id: "nuoma-yuanyi",
@@ -40,6 +42,7 @@ export const brandRegistry: Record<SurveyBrandId, SurveyBrand> = {
     pageTitle: "健康与功能状态问卷｜诺玛元一",
     pageDescription: "诺玛元一健康与功能状态问卷",
     consentOwner: "诺玛元一",
+    identityDescription: "信息仅用于健康评估与记录匹配。",
   },
 };
 

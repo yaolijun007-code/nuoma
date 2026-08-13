@@ -80,7 +80,7 @@ export default function App({ brand = activeBrand }: { brand?: SurveyBrand }) {
     setSubmitting(true);
     setSubmitError("");
     try {
-      const submitted = await submitSurvey(answers, clientSubmissionId, honeypot);
+      const submitted = await submitSurvey(answers, clientSubmissionId, honeypot, brand.questionnaireVersion);
       setResult(submitted.assessment);
       setConfirmationId(submitted.confirmationId);
       clearDraft(undefined, brand.draftKey);
@@ -143,7 +143,9 @@ export default function App({ brand = activeBrand }: { brand?: SurveyBrand }) {
         <section className="section-intro">
           <p className="eyebrow">{section.eyebrow}</p>
           <h1 ref={headingRef} tabIndex={-1}>{section.title}</h1>
-          {section.description && <p>{section.description}</p>}
+          {(section.id === "identity" ? brand.identityDescription : section.description) && (
+            <p>{section.id === "identity" ? brand.identityDescription : section.description}</p>
+          )}
         </section>
 
         {Object.keys(errors).length > 0 && <div className="error-summary" role="alert"><strong>还有内容需要完成</strong><span>请检查下方标记的项目。</span></div>}

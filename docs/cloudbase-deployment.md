@@ -21,6 +21,8 @@
 
 ## 构建与部署
 
+公开提交函数只接受医院版 `male-health-v1.0` 与诺玛元一版 `nuoma-yuanyi-male-health-v1.0`。其他版本直接拒绝且不落库。
+
 ```bash
 npm ci
 npm test
@@ -30,6 +32,8 @@ npx @cloudbase/cli login
 npx @cloudbase/cli fn deploy submitSurvey -e yuecheng-survey-d4fucklsf6b68aaf
 npx @cloudbase/cli fn deploy adminSurvey -e yuecheng-survey-d4fucklsf6b68aaf
 ```
+
+`npm run build` 生成医院版 `dist/`；`npm run build:nuoma-yuanyi` 生成诺玛元一版 `dist-nuoma-yuanyi/`。静态托管分别部署到 `health-survey` 与 `nuoma-yuanyi-survey` 目录。
 
 函数部署后，在CloudBase默认域名上创建两条SCF路由：`/api/submit-survey` 指向 `submitSurvey` 并关闭身份认证，设置总QPS和单IP QPS限制；`/api/admin-survey` 指向 `adminSurvey` 并开启身份认证。
 

@@ -28,7 +28,8 @@ describe("survey application", () => {
     expect(screen.getByRole("heading", { name: "基本信息" })).toBeInTheDocument();
   });
 
-  it("renders the independent Nuoma Yuanyi identity without hospital copy", () => {
+  it("renders the independent Nuoma Yuanyi identity without hospital copy", async () => {
+    const user = userEvent.setup();
     render(<App brand={brandRegistry["nuoma-yuanyi"]} />);
 
     expect(screen.getByText("诺玛元一")).toBeInTheDocument();
@@ -36,6 +37,11 @@ describe("survey application", () => {
     expect(screen.queryByText("建始民族医院")).not.toBeInTheDocument();
     expect(document.documentElement).toHaveAttribute("data-survey-brand", "nuoma-yuanyi");
     expect(document.title).toBe("健康与功能状态问卷｜诺玛元一");
+
+    await user.click(screen.getByRole("checkbox", { name: /我已阅读并理解/ }));
+    await user.click(screen.getByRole("button", { name: "开始填写" }));
+    expect(screen.getByText("信息仅用于健康评估与记录匹配。")).toBeInTheDocument();
+    expect(screen.queryByText("信息仅用于院内健康评估与记录匹配。")).not.toBeInTheDocument();
   });
 
   it("preserves the existing hospital identity", () => {

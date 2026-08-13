@@ -40,12 +40,18 @@ export class SubmissionError extends Error {
 }
 
 const allowedAnswerIds = new Set(maleHealthV1.sections.flatMap((section) => section.questions.map((question) => question.id)));
+export const supportedQuestionnaireVersions = new Set([
+  maleHealthV1.version,
+  "nuoma-yuanyi-male-health-v1.0",
+]);
 
 function parsePayload(input: unknown): SubmissionPayload {
   if (!input || typeof input !== "object") throw new SubmissionError("INVALID_PAYLOAD", "提交内容格式不正确");
   const payload = input as Partial<SubmissionPayload>;
   if (payload.honeypot) throw new SubmissionError("BOT_REJECTED", "请求已拒绝");
-  if (payload.questionnaireVersion !== maleHealthV1.version) throw new SubmissionError("INVALID_PAYLOAD", "问卷版本不受支持");
+  if (!payload.questionnaireVersion || !supportedQuestionnaireVersions.has(payload.questionnaireVersion)) {
+    throw new SubmissionError("INVALID_PAYLOAD", "问卷版本不受支持");
+  }
   if (!payload.clientSubmissionId || !/^[a-zA-Z0-9-]{16,64}$/.test(payload.clientSubmissionId)) {
     throw new SubmissionError("INVALID_PAYLOAD", "提交标识无效");
   }

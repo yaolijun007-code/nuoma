@@ -58,6 +58,15 @@ describe("createSubmissionService", () => {
     expect(response.confirmationId).toMatch(/^JS-/);
   });
 
+  it("accepts and persists the Nuoma Yuanyi questionnaire version", async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    const service = createSubmissionService({ find: vi.fn().mockResolvedValue(null), save });
+
+    await service.submit(payload({ questionnaireVersion: "nuoma-yuanyi-male-health-v1.0" }));
+
+    expect(save.mock.calls[0][0].session.questionnaireVersion).toBe("nuoma-yuanyi-male-health-v1.0");
+  });
+
   it("returns clinical priority for any safety red flag", async () => {
     const save = vi.fn();
     const service = createSubmissionService({ find: vi.fn().mockResolvedValue(null), save });
