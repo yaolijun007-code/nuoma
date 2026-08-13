@@ -1,6 +1,6 @@
 import type { AnswerMap } from "./types";
 
-const DRAFT_KEY = "nuoma.health-survey.v1.draft";
+const DEFAULT_DRAFT_KEY = "nuoma.health-survey.v1.draft";
 const MAX_AGE_MS = 48 * 60 * 60 * 1000;
 
 export interface DraftStorage {
@@ -23,30 +23,31 @@ export function saveDraft(
   sectionIndex: number,
   storage: DraftStorage | null = browserStorage(),
   now = Date.now(),
+  key = DEFAULT_DRAFT_KEY,
 ) {
-  storage?.setItem(DRAFT_KEY, JSON.stringify({ answers, sectionIndex, savedAt: now } satisfies SurveyDraft));
+  storage?.setItem(key, JSON.stringify({ answers, sectionIndex, savedAt: now } satisfies SurveyDraft));
 }
 
 export function loadDraft(
   storage: DraftStorage | null = browserStorage(),
   now = Date.now(),
+  key = DEFAULT_DRAFT_KEY,
 ): SurveyDraft | null {
-  const raw = storage?.getItem(DRAFT_KEY);
+  const raw = storage?.getItem(key);
   if (!raw) return null;
   try {
     const draft = JSON.parse(raw) as SurveyDraft;
     if (!draft.savedAt || now - draft.savedAt > MAX_AGE_MS) {
-      storage?.removeItem(DRAFT_KEY);
+      storage?.removeItem(key);
       return null;
     }
     return draft;
   } catch {
-    storage?.removeItem(DRAFT_KEY);
+    storage?.removeItem(key);
     return null;
   }
 }
 
-export function clearDraft(storage: DraftStorage | null = browserStorage()) {
-  storage?.removeItem(DRAFT_KEY);
+export function clearDraft(storage: DraftStorage | null = browserStorage(), key = DEFAULT_DRAFT_KEY) {
+  storage?.removeItem(key);
 }
-

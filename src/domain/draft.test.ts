@@ -24,5 +24,17 @@ describe("survey draft", () => {
     clearDraft(storage);
     expect(loadDraft(storage, 2_000)).toBeNull();
   });
-});
 
+  it("keeps drafts for different brands isolated", () => {
+    const storage = memoryStorage();
+    saveDraft({ q1: "1" }, 1, storage, 100, "hospital-draft");
+    saveDraft({ q1: "4" }, 4, storage, 100, "nuoma-draft");
+
+    expect(loadDraft(storage, 101, "hospital-draft")).toMatchObject({ answers: { q1: "1" }, sectionIndex: 1 });
+    expect(loadDraft(storage, 101, "nuoma-draft")).toMatchObject({ answers: { q1: "4" }, sectionIndex: 4 });
+
+    clearDraft(storage, "nuoma-draft");
+    expect(loadDraft(storage, 101, "nuoma-draft")).toBeNull();
+    expect(loadDraft(storage, 101, "hospital-draft")).not.toBeNull();
+  });
+});
