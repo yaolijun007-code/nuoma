@@ -264,11 +264,17 @@ var maleHealthV1 = {
 
 // src/domain/validation.ts
 var isEmpty = (value) => value === void 0 || value === "" || Array.isArray(value) && value.length === 0;
-function validateStep(sectionId, answers) {
-  const section = maleHealthV1.sections.find((item) => item.id === sectionId);
-  if (!section) return { _section: "\u95EE\u5377\u6B65\u9AA4\u4E0D\u5B58\u5728" };
+var questionById = new Map(
+  maleHealthV1.sections.flatMap((section) => section.questions).map((question) => [question.id, question])
+);
+function validateQuestions(questionIds, answers) {
   const errors = {};
-  for (const question of section.questions) {
+  for (const questionId of questionIds) {
+    const question = questionById.get(questionId);
+    if (!question) {
+      errors[questionId] = "\u95EE\u5377\u9898\u76EE\u4E0D\u5B58\u5728";
+      continue;
+    }
     const value = answers[question.id];
     if (question.required && isEmpty(value)) {
       errors[question.id] = question.type === "text" || question.type === "number" || question.type === "date" ? "\u8BF7\u586B\u5199\u6B64\u9879" : "\u8BF7\u9009\u62E9\u4E00\u9879";
@@ -281,12 +287,15 @@ function validateStep(sectionId, answers) {
   const name = String(answers.name ?? "").trim();
   const age = Number(answers.age);
   const phoneLast4 = String(answers.phoneLast4 ?? "");
-  if (sectionId === "identity") {
-    if (!name) errors.name = "\u8BF7\u586B\u5199\u59D3\u540D";
-    if (!Number.isInteger(age) || age < 40 || age > 55) errors.age = "\u8BF7\u8F93\u516540\u201455\u4E4B\u95F4\u7684\u6574\u6570\u5E74\u9F84";
-    if (!/^\d{4}$/.test(phoneLast4)) errors.phoneLast4 = "\u8BF7\u8F93\u5165\u624B\u673A\u53F7\u540E4\u4F4D\u6570\u5B57";
-  }
+  if (questionIds.includes("name") && !name) errors.name = "\u8BF7\u586B\u5199\u59D3\u540D";
+  if (questionIds.includes("age") && (!Number.isInteger(age) || age < 40 || age > 55)) errors.age = "\u8BF7\u8F93\u516540\u201455\u4E4B\u95F4\u7684\u6574\u6570\u5E74\u9F84";
+  if (questionIds.includes("phoneLast4") && !/^\d{4}$/.test(phoneLast4)) errors.phoneLast4 = "\u8BF7\u8F93\u5165\u624B\u673A\u53F7\u540E4\u4F4D\u6570\u5B57";
   return errors;
+}
+function validateStep(sectionId, answers) {
+  const section = maleHealthV1.sections.find((item) => item.id === sectionId);
+  if (!section) return { _section: "\u95EE\u5377\u6B65\u9AA4\u4E0D\u5B58\u5728" };
+  return validateQuestions(section.questions.map(({ id }) => id), answers);
 }
 
 // src/domain/submission.ts

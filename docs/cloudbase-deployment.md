@@ -35,6 +35,8 @@ npx @cloudbase/cli fn deploy adminSurvey -e yuecheng-survey-d4fucklsf6b68aaf
 
 `npm run build` 生成医院版 `dist/`；`npm run build:nuoma-yuanyi` 生成诺玛元一版 `dist-nuoma-yuanyi/`。静态托管分别部署到 `health-survey` 与 `nuoma-yuanyi-survey` 目录。
 
+两套构建共享题目与提交协议，但前端导航不同：医院版按12个模块填写，诺玛元一按64个主问题逐题填写。诺玛元一单题模式使用独立草稿键，部署后不会把旧模块索引误读成问题页索引。
+
 函数部署后，在CloudBase默认域名上创建两条SCF路由：`/api/submit-survey` 指向 `submitSurvey` 并关闭身份认证，设置总QPS和单IP QPS限制；`/api/admin-survey` 指向 `adminSurvey` 并开启身份认证。
 
 仓库中的 `.env.production` 已指向当前 `submitSurvey` HTTP 地址。更换环境或路由后更新：
