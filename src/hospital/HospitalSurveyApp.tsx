@@ -3,7 +3,7 @@ import { Activity, ArrowRight, Check, Clock3, Save, ShieldCheck } from "lucide-r
 import type { SurveyBrand } from "../brand";
 import type { AnswerMap, AnswerValue, AssessmentResult } from "../domain/types";
 import { submitSurvey } from "../services/submission";
-import { getVisibleSurveyPages, pruneHiddenAnswers } from "./navigation";
+import { getSurveyProgress, getVisibleSurveyPages, pruneHiddenAnswers } from "./navigation";
 import { hospitalModules } from "./surveyDefinition";
 import { validateHospitalQuestion } from "./validation";
 import { clearHospitalDraft, loadHospitalDraft, saveHospitalDraft } from "./draft";
@@ -39,7 +39,7 @@ export function HospitalSurveyApp({ brand }: { brand: SurveyBrand }) {
   const module = hospitalModules.find((item) => item.id === page?.moduleId) ?? hospitalModules[0];
   const questionPages = pages.filter((item) => item.kind === "question");
   const questionIndex = Math.max(0, questionPages.findIndex((item) => item.id === currentPageId));
-  const progress = questionPages.length ? Math.min(100, ((questionIndex + (page?.kind === "question" ? 1 : 0)) / questionPages.length) * 100) : 0;
+  const progress = getSurveyProgress(pages, currentPageId);
   const safetyTone = page?.kind === "question" ? page.question.tone : page?.tone;
   const moduleTitle = safetyTone === "safety" ? "医学安全信息" : module.title;
 

@@ -30,6 +30,16 @@ export function getVisibleSurveyPages(answers: AnswerMap): HospitalSurveyPage[] 
     .map((page) => withDynamicOptions(page, answers));
 }
 
+export function getSurveyProgress(pages: HospitalSurveyPage[], currentPageId: string) {
+  const total = pages.filter((page) => page.kind === "question").length;
+  if (!total) return 0;
+  const pageIndex = pages.findIndex((page) => page.id === currentPageId);
+  if (pageIndex < 0) return 0;
+  const completed = pages.slice(0, pageIndex).filter((page) => page.kind === "question").length;
+  const current = pages[pageIndex]?.kind === "question" ? 1 : 0;
+  return Math.min(100, ((completed + current) / total) * 100);
+}
+
 export function pruneHiddenAnswers(answers: AnswerMap): AnswerMap {
   const visibleIds = new Set(getVisibleSurveyPages(answers).map((page) => page.id));
   const conditionalIds = hospitalSurvey.pages

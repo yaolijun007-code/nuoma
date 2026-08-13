@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hospitalSurvey } from "./surveyDefinition";
-import { getVisibleSurveyPages, pruneHiddenAnswers, updateExclusiveSelection } from "./navigation";
+import { getSurveyProgress, getVisibleSurveyPages, pruneHiddenAnswers, updateExclusiveSelection } from "./navigation";
 
 describe("hospital mobile survey navigation", () => {
   it("organizes all 55 medical questions into ten modules", () => {
@@ -51,5 +51,13 @@ describe("hospital mobile survey navigation", () => {
       .find((item) => item.id === "singleImprovement");
     if (!page || page.kind !== "question") throw new Error("dynamic page missing");
     expect(page.question.options?.map((option) => option.label)).toEqual(["睡眠", "压力与情绪", "腰背或关节不适"]);
+  });
+
+  it("keeps accumulated progress on module introduction pages", () => {
+    const pages = getVisibleSurveyPages({});
+    expect(getSurveyProgress(pages, "intro:identity")).toBe(0);
+    expect(getSurveyProgress(pages, "intro:energy")).toBeGreaterThan(0);
+    expect(getSurveyProgress(pages, "intro:energy")).toBeGreaterThan(getSurveyProgress(pages, "q1"));
+    expect(getSurveyProgress(pages, "singleImprovement")).toBe(100);
   });
 });
