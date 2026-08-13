@@ -122,7 +122,7 @@ export function HospitalSurveyApp({ brand }: { brand: SurveyBrand }) {
     setError("");
   };
 
-  if (phase === "complete" && result) return <div className="hospital-survey"><CompletionPage hasRedFlag={result.hasRedFlag} confirmationId={confirmationId} /></div>;
+  if (phase === "complete" && result) return <div className="hospital-survey completion-shell"><CompletionPage hasRedFlag={result.hasRedFlag} confirmationId={confirmationId} /></div>;
 
   if (phase === "welcome") return (
     <main className="hospital-survey hospital-welcome">

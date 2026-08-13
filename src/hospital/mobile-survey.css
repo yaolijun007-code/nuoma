@@ -359,6 +359,8 @@
     margin: 0 auto;
     padding: max(48px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom));
   }
+  .completion-shell { width: min(100%, 480px); margin: 0 auto; }
+  .completion-shell .hospital-completion { width: 100%; }
   .completion-mark { width: 58px; height: 58px; display: grid; place-items: center; margin-bottom: 24px; border-radius: 20px; color: #ffffff; background: var(--clinical-teal-dark); box-shadow: 0 10px 24px rgb(0 111 102 / 18%); }
   .completion-mark svg { width: 28px; height: 28px; }
   .hospital-completion h1 { margin: 0; font-size: 34px; line-height: 1.2; letter-spacing: -.04em; }
