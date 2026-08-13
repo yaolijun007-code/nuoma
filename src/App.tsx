@@ -138,7 +138,7 @@ export default function App({ brand = activeBrand }: { brand?: SurveyBrand }) {
     <div className={`survey-shell ${isQuestionMode ? "single-question-shell" : ""}`}>
       <header className="survey-header">
         <div className="survey-brand"><BrandMark variant={brand.id} /><span>{brand.organization}</span></div>
-        <span className="step-count">{pageIndex + 1} / {pages.length}</span>
+        <span className="step-count" aria-live="polite" aria-atomic="true">{pageIndex + 1} / {pages.length}</span>
         <div className="progress-track" aria-label={`问卷进度 ${Math.round(progress)}%`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}>
           <span style={{ width: `${progress}%` }} />
         </div>

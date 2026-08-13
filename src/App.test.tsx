@@ -60,7 +60,8 @@ describe("survey application", () => {
 
     await user.type(screen.getByLabelText(/姓名/), "张三");
     await user.click(screen.getByRole("button", { name: "下一题" }));
-    expect(screen.getByText("2 / 64")).toBeInTheDocument();
+    expect(screen.getByText("2 / 64")).toHaveAttribute("aria-live", "polite");
+    expect(screen.getByRole("heading", { name: "年龄" })).toHaveFocus();
     expect(screen.getByLabelText(/年龄/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/姓名/)).not.toBeInTheDocument();
   });
