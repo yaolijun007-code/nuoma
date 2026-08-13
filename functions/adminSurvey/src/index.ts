@@ -22,6 +22,7 @@ const repository = {
         status: session.status || "new",
         name: profile.name || "",
         age: profile.age || "",
+        phone: profile.phone || "",
         phoneLast4: profile.phoneLast4 || "",
       };
     });

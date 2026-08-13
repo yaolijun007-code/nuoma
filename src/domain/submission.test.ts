@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSubmissionService, SubmissionError } from "./submission";
 import type { AnswerMap } from "./types";
+import { validHospitalAnswers } from "../test/hospitalAnswers";
 
 const validAnswers = (): AnswerMap => ({
   name: "张三", age: 45, phoneLast4: "0826", date: "2026-08-13",
@@ -75,5 +76,13 @@ describe("createSubmissionService", () => {
     const response = await service.submit(payload({ answers }));
     expect(response.assessment.hasRedFlag).toBe(true);
     expect(response.assessment.domains.every((item) => item.level === "clinical_priority")).toBe(true);
+  });
+
+  it("accepts the mobile hospital payload without age and persists a searchable phone", async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    const service = createSubmissionService({ find: vi.fn().mockResolvedValue(null), save });
+    await service.submit(payload({ answers: validHospitalAnswers() }));
+
+    expect(save.mock.calls[0][0].identity).toEqual({ name: "虚构用户", phone: "13800000000", phoneLast4: "0000", age: null });
   });
 });
