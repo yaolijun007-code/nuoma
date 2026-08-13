@@ -8,14 +8,15 @@ import { maleHealthV1 } from "./domain/questionnaire";
 import type { AnswerMap, AnswerValue, AssessmentResult } from "./domain/types";
 import { validateStep, type ValidationErrors } from "./domain/validation";
 import { submitSurvey } from "./services/submission";
+import { activeBrand, type SurveyBrand } from "./brand";
 import "./styles.css";
 
 type Phase = "welcome" | "survey" | "result";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export default function App() {
-  const restored = useMemo(() => loadDraft(), []);
+export default function App({ brand = activeBrand }: { brand?: SurveyBrand }) {
+  const restored = useMemo(() => loadDraft(undefined, undefined, brand.draftKey), [brand.draftKey]);
   const [phase, setPhase] = useState<Phase>("welcome");
   const [consent, setConsent] = useState(false);
   const [sectionIndex, setSectionIndex] = useState(restored?.sectionIndex ?? 0);
@@ -32,8 +33,20 @@ export default function App() {
   const progress = ((sectionIndex + 1) / maleHealthV1.sections.length) * 100;
 
   useEffect(() => {
-    if (phase === "survey") saveDraft(answers, sectionIndex);
-  }, [answers, phase, sectionIndex]);
+    if (phase === "survey") saveDraft(answers, sectionIndex, undefined, undefined, brand.draftKey);
+  }, [answers, brand.draftKey, phase, sectionIndex]);
+
+  useEffect(() => {
+    document.documentElement.dataset.surveyBrand = brand.id;
+    document.documentElement.classList.add(brand.themeClass);
+    document.title = brand.pageTitle;
+    const description = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    description?.setAttribute("content", brand.pageDescription);
+    return () => {
+      delete document.documentElement.dataset.surveyBrand;
+      document.documentElement.classList.remove(brand.themeClass);
+    };
+  }, [brand]);
 
   useEffect(() => {
     if (phase === "survey") headingRef.current?.focus();
@@ -70,7 +83,7 @@ export default function App() {
       const submitted = await submitSurvey(answers, clientSubmissionId, honeypot);
       setResult(submitted.assessment);
       setConfirmationId(submitted.confirmationId);
-      clearDraft();
+      clearDraft(undefined, brand.draftKey);
       setPhase("result");
       window.scrollTo({ top: 0 });
     } catch (error) {
@@ -88,13 +101,13 @@ export default function App() {
         <div className="ambient ambient-one" aria-hidden="true" />
         <div className="ambient ambient-two" aria-hidden="true" />
         <header className="institution">
-          <BrandMark />
-          <div><strong>建始民族医院</strong><span>衰老与健康管理中心</span></div>
+          <BrandMark variant={brand.id} />
+          <div><strong>{brand.organization}</strong><span>{brand.subtitle}</span></div>
         </header>
 
         <section className="welcome-card">
           <div className="spectrum-orbit" aria-hidden="true"><HeartPulse /></div>
-          <p className="eyebrow">MALE HEALTH · V1.0</p>
+          <p className="eyebrow">{brand.eyebrow}</p>
           <h1><span>读懂身体正在发生的</span><br /><em>细微变化</em></h1>
           <p className="welcome-lead">一份面向40—55岁男性的功能状态问卷。用真实体感，为后续检测选择与12周健康管理提供参考。</p>
           <div className="fact-row">
@@ -105,7 +118,7 @@ export default function App() {
           {restored && <div className="restore-note">检测到48小时内的未完成记录，开始后将从上次位置继续。</div>}
           <label className="consent-row">
             <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
-            <span>我已阅读并理解：本问卷用于健康评估参考，不替代医学诊断；我同意按院方隐私说明提交信息。</span>
+            <span>我已阅读并理解：本问卷用于健康评估参考，不替代医学诊断；我同意按{brand.consentOwner}隐私说明提交信息。</span>
           </label>
           <button className="primary-button" disabled={!consent} onClick={() => setPhase("survey")}>
             开始填写 <ArrowRight aria-hidden="true" />
@@ -119,7 +132,7 @@ export default function App() {
   return (
     <div className="survey-shell">
       <header className="survey-header">
-        <div className="survey-brand"><BrandMark /><span>建始民族医院</span></div>
+        <div className="survey-brand"><BrandMark variant={brand.id} /><span>{brand.organization}</span></div>
         <span className="step-count">{sectionIndex + 1} / {maleHealthV1.sections.length}</span>
         <div className="progress-track" aria-label={`问卷进度 ${Math.round(progress)}%`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}>
           <span style={{ width: `${progress}%` }} />
