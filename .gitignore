@@ -8,6 +8,7 @@ coverage/
 .DS_Store
 /work/
 /outputs/
+.worktrees/
 .cloudbase/
 *.tsbuildinfo
 /vite.config.js
