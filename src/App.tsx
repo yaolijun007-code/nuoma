@@ -9,13 +9,14 @@ import type { AnswerMap, AnswerValue, AssessmentResult } from "./domain/types";
 import { validateQuestions, validateStep, type ValidationErrors } from "./domain/validation";
 import { submitSurvey } from "./services/submission";
 import { activeBrand, type SurveyBrand } from "./brand";
+import { HospitalSurveyApp } from "./hospital/HospitalSurveyApp";
 import "./styles.css";
 
 type Phase = "welcome" | "survey" | "result";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export default function App({ brand = activeBrand }: { brand?: SurveyBrand }) {
+export function LegacySurveyApp({ brand }: { brand: SurveyBrand }) {
   const pages = useMemo(() => createSurveyPages(brand.navigationMode), [brand.navigationMode]);
   const restored = useMemo(() => loadDraft(undefined, undefined, brand.draftKey), [brand.draftKey]);
   const [phase, setPhase] = useState<Phase>("welcome");
@@ -186,4 +187,8 @@ export default function App({ brand = activeBrand }: { brand?: SurveyBrand }) {
       </main>
     </div>
   );
+}
+
+export default function App({ brand = activeBrand }: { brand?: SurveyBrand }) {
+  return brand.id === "hospital" ? <HospitalSurveyApp brand={brand} /> : <LegacySurveyApp brand={brand} />;
 }

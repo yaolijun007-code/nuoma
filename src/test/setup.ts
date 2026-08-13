@@ -17,6 +17,11 @@ if (jsdomWindow) {
 
 if (typeof window !== "undefined") window.scrollTo = vi.fn();
 
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "scrollTo", { configurable: true, value: () => undefined });
+  Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: () => undefined });
+}
+
 afterEach(() => {
   cleanup();
   if (typeof window !== "undefined") window.localStorage?.clear();

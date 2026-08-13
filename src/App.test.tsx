@@ -7,21 +7,21 @@ import { saveDraft } from "./domain/draft";
 import { createSurveyPages } from "./domain/survey-flow";
 
 describe("survey application", () => {
-  it("requires privacy acknowledgement before starting", async () => {
+  it("requires privacy acknowledgement before starting the hospital assessment", async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    const start = screen.getByRole("button", { name: "开始填写" });
+    const start = screen.getByRole("button", { name: "开始评估" });
     expect(start).toBeDisabled();
-    await user.click(screen.getByRole("checkbox", { name: /我已阅读并理解/ }));
+    await user.click(screen.getByRole("checkbox", { name: /同意按院方隐私说明/ }));
     expect(start).toBeEnabled();
     await user.click(start);
-    expect(screen.getByRole("heading", { name: "基本信息" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "先从基本信息开始" })).toBeInTheDocument();
   });
 
-  it("announces required-field errors and stays on the current step", async () => {
+  it("keeps the independent Nuoma Yuanyi legacy validation", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App brand={brandRegistry["nuoma-yuanyi"]} />);
     await user.click(screen.getByRole("checkbox", { name: /我已阅读并理解/ }));
     await user.click(screen.getByRole("button", { name: "开始填写" }));
     await user.click(screen.getByRole("button", { name: "下一步" }));
