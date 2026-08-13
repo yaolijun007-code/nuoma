@@ -39,7 +39,7 @@ npm run build:all
 - `src/domain/submission.ts`：提交校验、幂等和数据分离。
 - `src/hospital`：医院版一题一页导航、条件分支、断点续填与临床视觉组件。
 - `src/components`：客户填写和结果组件。
-- `functions/submitSurvey`：公开提交云函数及失败不阻断入库的医院企业微信通知。
+- `functions/submitSurvey`：公开提交云函数，以及失败不阻断入库的医院流程通知与诺玛元一脱敏问卷概要通知。
 - `functions/adminSurvey`：需身份认证的院内管理API。
 - `docs/cloudbase-deployment.md`：云端配置、安全与部署步骤。
 

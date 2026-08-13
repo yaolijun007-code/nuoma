@@ -653,6 +653,34 @@ function buildWeComMarkdown(record) {
     "\u8BF7\u5728\u9662\u5185\u7CFB\u7EDF\u6838\u5B9E\u5B8C\u6574\u4FE1\u606F\uFF1B\u7FA4\u5185\u901A\u77E5\u4E0D\u5C55\u793A\u5177\u4F53\u5065\u5EB7\u7B54\u6848\u3002"
   ].join("\n");
 }
+var twelveWeekGoalLabels = new Map(
+  maleHealthV1.sections.flatMap((section) => section.questions).find((question) => question.id === "twelveWeekGoals")?.options?.map((option) => [option.value, option.label]) ?? []
+);
+function domainTitles(record, level) {
+  const titles = record.assessment.domains.filter((domain2) => domain2.level === level).map((domain2) => safeInline(domain2.title));
+  return titles.length ? titles.join("\u3001") : "\u65E0";
+}
+function selectedGoalLabels(record) {
+  const selected = record.healthAnswers.twelveWeekGoals;
+  if (!Array.isArray(selected)) return "\u672A\u586B\u5199";
+  const labels = selected.slice(0, 3).map((value) => twelveWeekGoalLabels.get(String(value))).filter((value) => Boolean(value)).map(safeInline);
+  return labels.length ? labels.join("\u3001") : "\u672A\u586B\u5199";
+}
+function buildNuomaYuanyiWeComMarkdown(record) {
+  const safetyStatus = record.session.hasRedFlag ? '<font color="warning">\u5B58\u5728\u533B\u5B66\u5B89\u5168\u7EA2\u65D7\uFF0C\u9700\u4F18\u5148\u4EBA\u5DE5\u6838\u5B9E</font>' : '<font color="info">\u672A\u53D1\u73B0\u533B\u5B66\u5B89\u5168\u7EA2\u65D7</font>';
+  return [
+    "### \u8BFA\u739B\u5143\u4E00\uFF5C\u65B0\u95EE\u5377\u6982\u8981",
+    `> \u5B89\u5168\u72B6\u6001\uFF1A${safetyStatus}`,
+    `> \u8BB0\u5F55\u7F16\u53F7\uFF1A${safeInline(record.session.confirmationId)}`,
+    `> \u63D0\u4EA4\u65F6\u95F4\uFF1A${safeInline(record.session.submittedAt)}`,
+    "",
+    `**\u5EFA\u8BAE\u8FDB\u4E00\u6B65\u8BC4\u4F30**\uFF1A${domainTitles(record, "evaluate")}`,
+    `**\u5B58\u5728\u53D8\u5316\u4FE1\u53F7**\uFF1A${domainTitles(record, "signal")}`,
+    `**12\u5468\u76EE\u6807**\uFF1A${selectedGoalLabels(record)}`,
+    "",
+    "\u7FA4\u5185\u4EC5\u5C55\u793A\u8131\u654F\u6982\u8981\uFF0C\u8BF7\u51ED\u8BB0\u5F55\u7F16\u53F7\u5728\u53D7\u4FDD\u62A4\u7CFB\u7EDF\u5185\u6838\u5B9E\u5B8C\u6574\u4FE1\u606F\u3002"
+  ].join("\n");
+}
 function validateWebhook(webhookUrl) {
   let url;
   try {
@@ -681,6 +709,27 @@ async function sendWeComNotification(webhookUrl, markdown, fetcher = fetch) {
   }
 }
 
+// functions/submitSurvey/src/notification.ts
+function resolveWeComNotification(record, environment) {
+  if (record.session.questionnaireVersion === "nuoma-yuanyi-male-health-v1.0") {
+    return {
+      webhookUrl: environment.NUOMA_YUANYI_WECOM_WEBHOOK_URL,
+      markdown: buildNuomaYuanyiWeComMarkdown(record),
+      auditAction: "nuoma_yuanyi_wecom_notification",
+      failureLog: "Nuoma Yuanyi WeCom notification failed"
+    };
+  }
+  if (record.session.questionnaireVersion === "male-health-v1.0" && record.identity.phone) {
+    return {
+      webhookUrl: environment.HOSPITAL_WECHAT_WEBHOOK_URL,
+      markdown: buildWeComMarkdown(record),
+      auditAction: "hospital_wecom_notification",
+      failureLog: "hospital WeCom notification failed"
+    };
+  }
+  return null;
+}
+
 // functions/submitSurvey/src/index.ts
 var app = (0, import_node_sdk.init)({ env: import_node_sdk.SYMBOL_CURRENT_ENV });
 var db = app.database();
@@ -703,30 +752,28 @@ var persistence = {
       db.collection(collections.assessments).add({ sessionId, assessment: record.assessment }),
       db.collection(collections.auditLogs).add({ sessionId, action: "public_submission", createdAt: record.session.submittedAt })
     ]);
-    let notificationStatus = "not_applicable";
-    if (record.identity.phone) {
-      const webhookUrl = process.env.HOSPITAL_WECHAT_WEBHOOK_URL;
-      if (!webhookUrl) {
-        notificationStatus = "not_configured";
-      } else {
+    const notification = resolveWeComNotification(record, process.env);
+    if (notification) {
+      let notificationStatus = "not_configured";
+      if (notification.webhookUrl) {
         try {
-          await sendWeComNotification(webhookUrl, buildWeComMarkdown(record));
+          await sendWeComNotification(notification.webhookUrl, notification.markdown);
           notificationStatus = "sent";
         } catch {
           notificationStatus = "failed";
-          console.error("hospital WeCom notification failed");
+          console.error(notification.failureLog);
         }
       }
-    }
-    try {
-      await db.collection(collections.auditLogs).add({
-        sessionId,
-        action: "hospital_wecom_notification",
-        status: notificationStatus,
-        createdAt: (/* @__PURE__ */ new Date()).toISOString()
-      });
-    } catch {
-      console.error("hospital notification audit write failed");
+      try {
+        await db.collection(collections.auditLogs).add({
+          sessionId,
+          action: notification.auditAction,
+          status: notificationStatus,
+          createdAt: (/* @__PURE__ */ new Date()).toISOString()
+        });
+      } catch {
+        console.error("WeCom notification audit write failed");
+      }
     }
   }
 };

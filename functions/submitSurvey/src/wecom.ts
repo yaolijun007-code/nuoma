@@ -1,4 +1,5 @@
 import type { PersistedSubmission } from "../../../src/domain/submission";
+import { maleHealthV1 } from "../../../src/domain/questionnaire";
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
@@ -24,6 +25,49 @@ export function buildWeComMarkdown(record: PersistedSubmission) {
     `> 提交时间：${safeInline(record.session.submittedAt)}`,
     "",
     "请在院内系统核实完整信息；群内通知不展示具体健康答案。",
+  ].join("\n");
+}
+
+const twelveWeekGoalLabels = new Map(
+  maleHealthV1.sections
+    .flatMap((section) => section.questions)
+    .find((question) => question.id === "twelveWeekGoals")
+    ?.options?.map((option) => [option.value, option.label]) ?? [],
+);
+
+function domainTitles(record: PersistedSubmission, level: "evaluate" | "signal") {
+  const titles = record.assessment.domains
+    .filter((domain) => domain.level === level)
+    .map((domain) => safeInline(domain.title));
+  return titles.length ? titles.join("、") : "无";
+}
+
+function selectedGoalLabels(record: PersistedSubmission) {
+  const selected = record.healthAnswers.twelveWeekGoals;
+  if (!Array.isArray(selected)) return "未填写";
+  const labels = selected
+    .slice(0, 3)
+    .map((value) => twelveWeekGoalLabels.get(String(value)))
+    .filter((value): value is string => Boolean(value))
+    .map(safeInline);
+  return labels.length ? labels.join("、") : "未填写";
+}
+
+export function buildNuomaYuanyiWeComMarkdown(record: PersistedSubmission) {
+  const safetyStatus = record.session.hasRedFlag
+    ? '<font color="warning">存在医学安全红旗，需优先人工核实</font>'
+    : '<font color="info">未发现医学安全红旗</font>';
+  return [
+    "### 诺玛元一｜新问卷概要",
+    `> 安全状态：${safetyStatus}`,
+    `> 记录编号：${safeInline(record.session.confirmationId)}`,
+    `> 提交时间：${safeInline(record.session.submittedAt)}`,
+    "",
+    `**建议进一步评估**：${domainTitles(record, "evaluate")}`,
+    `**存在变化信号**：${domainTitles(record, "signal")}`,
+    `**12周目标**：${selectedGoalLabels(record)}`,
+    "",
+    "群内仅展示脱敏概要，请凭记录编号在受保护系统内核实完整信息。",
   ].join("\n");
 }
 

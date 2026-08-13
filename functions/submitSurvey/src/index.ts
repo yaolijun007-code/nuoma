@@ -1,7 +1,8 @@
 import { init, SYMBOL_CURRENT_ENV } from "@cloudbase/node-sdk";
 import { createSubmissionService, SubmissionError, type PersistedSubmission } from "../../../src/domain/submission";
 import { collections } from "../../../src/domain/collections";
-import { buildWeComMarkdown, sendWeComNotification } from "./wecom";
+import { resolveWeComNotification } from "./notification";
+import { sendWeComNotification } from "./wecom";
 
 const app = init({ env: SYMBOL_CURRENT_ENV });
 const db = app.database();
@@ -26,30 +27,28 @@ const persistence = {
       db.collection(collections.auditLogs).add({ sessionId, action: "public_submission", createdAt: record.session.submittedAt }),
     ]);
 
-    let notificationStatus = "not_applicable";
-    if (record.identity.phone) {
-      const webhookUrl = process.env.HOSPITAL_WECHAT_WEBHOOK_URL;
-      if (!webhookUrl) {
-        notificationStatus = "not_configured";
-      } else {
+    const notification = resolveWeComNotification(record, process.env);
+    if (notification) {
+      let notificationStatus = "not_configured";
+      if (notification.webhookUrl) {
         try {
-          await sendWeComNotification(webhookUrl, buildWeComMarkdown(record));
+          await sendWeComNotification(notification.webhookUrl, notification.markdown);
           notificationStatus = "sent";
         } catch {
           notificationStatus = "failed";
-          console.error("hospital WeCom notification failed");
+          console.error(notification.failureLog);
         }
       }
-    }
-    try {
-      await db.collection(collections.auditLogs).add({
-        sessionId,
-        action: "hospital_wecom_notification",
-        status: notificationStatus,
-        createdAt: new Date().toISOString(),
-      });
-    } catch {
-      console.error("hospital notification audit write failed");
+      try {
+        await db.collection(collections.auditLogs).add({
+          sessionId,
+          action: notification.auditAction,
+          status: notificationStatus,
+          createdAt: new Date().toISOString(),
+        });
+      } catch {
+        console.error("WeCom notification audit write failed");
+      }
     }
   },
 };

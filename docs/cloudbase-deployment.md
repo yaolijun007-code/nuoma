@@ -18,7 +18,7 @@
 7. 为 `adminSurvey` 的 HTTP 网关开启身份认证。
 8. 在 `adminSurvey` 环境变量 `ADMIN_UIDS` 中填写允许访问的 CloudBase 用户 UID，多个 UID 用英文逗号分隔。
 9. `submitSurvey` 已将 `ALLOWED_ORIGIN` 限定为当前静态托管域名；绑定自定义域名后同步修改此值，不要在生产环境使用 `*`。
-10. 在 `submitSurvey` 云函数环境变量中配置 `HOSPITAL_WECHAT_WEBHOOK_URL`。仅使用企业微信群机器人官方 HTTPS 地址；该值不得写入仓库、构建日志或前端变量。
+10. 在 `submitSurvey` 云函数环境变量中配置 `HOSPITAL_WECHAT_WEBHOOK_URL` 与 `NUOMA_YUANYI_WECOM_WEBHOOK_URL`。两个品牌使用独立的企业微信群机器人官方 HTTPS 地址；这些值不得写入仓库、构建日志或前端变量。
 
 ## 构建与部署
 
@@ -35,7 +35,7 @@ npx @cloudbase/cli fn deploy adminSurvey -e yuecheng-survey-d4fucklsf6b68aaf
 npx @cloudbase/cli hosting deploy dist health-survey -e yuecheng-survey-d4fucklsf6b68aaf
 ```
 
-`cloudbaserc.json` 不声明云函数环境变量，避免代码部署时覆盖云端保存的机器人密钥。首次部署或更换环境后，应在控制台单独设置 `ALLOWED_ORIGIN` 和 `HOSPITAL_WECHAT_WEBHOOK_URL`，再通过只显示变量名称、不显示值的方式核验。企业微信通知只包含脱敏手机号和流程信息，不包含具体答案；通知失败会写审计日志，但不会回滚已成功入库的问卷。
+`cloudbaserc.json` 不声明云函数环境变量，避免代码部署时覆盖云端保存的机器人密钥。首次部署或更换环境后，应在控制台单独设置 `ALLOWED_ORIGIN`、`HOSPITAL_WECHAT_WEBHOOK_URL` 和 `NUOMA_YUANYI_WECOM_WEBHOOK_URL`，再通过只显示变量名称、不显示值的方式核验。医院通知仅包含脱敏手机号和流程信息；诺玛元一通知仅包含记录编号、安全状态、评估方向、变化信号和12周目标，不包含姓名、手机号、开放文本、逐题答案或具体红旗内容。通知失败会写审计日志，但不会回滚已成功入库的问卷。
 
 `npm run build` 生成医院版 `dist/`；`npm run build:nuoma-yuanyi` 生成诺玛元一版 `dist-nuoma-yuanyi/`。静态托管分别部署到 `health-survey` 与 `nuoma-yuanyi-survey` 目录。
 
@@ -58,7 +58,7 @@ VITE_SUBMIT_ENDPOINT=https://实际网关地址/api/submit-survey
 
 ## 数据验收
 
-只使用明确标注为“系统测试”的虚构数据提交一次，确认五个集合均出现相同 `sessionId` 的记录；确认公开页面不能读取集合；确认红旗测试记录在 `health_survey_sessions.hasRedFlag` 为 `true`；确认 `hospital_wecom_notification` 审计状态为 `sent`。验收完成后按精确会话 ID 删除虚构测试记录及其审计记录。企业微信群机器人消息无法随数据库记录一同撤回。
+只使用明确标注为“系统测试”的虚构数据提交一次，确认五个集合均出现相同 `sessionId` 的记录；确认公开页面不能读取集合；确认红旗测试记录在 `health_survey_sessions.hasRedFlag` 为 `true`；医院版确认 `hospital_wecom_notification`、诺玛元一版确认 `nuoma_yuanyi_wecom_notification` 的审计状态为 `sent`。验收完成后按精确会话 ID 删除虚构测试记录及其审计记录。企业微信群机器人消息无法随数据库记录一同撤回；更换群机器人时应立即替换云函数环境变量并撤销旧机器人地址。
 
 ## 已知上游依赖风险
 

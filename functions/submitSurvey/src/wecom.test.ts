@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 import type { PersistedSubmission } from "../../../src/domain/submission";
-import { buildWeComMarkdown, sendWeComNotification } from "./wecom";
+import { buildNuomaYuanyiWeComMarkdown, buildWeComMarkdown, sendWeComNotification } from "./wecom";
 
 const record: PersistedSubmission = {
   session: {
@@ -40,5 +40,60 @@ describe("hospital WeCom notification", () => {
     const promise = sendWeComNotification("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=sensitive-secret", "message", fetcher);
     await expect(promise).rejects.toThrow("企业微信通知失败");
     await expect(promise).rejects.not.toThrow("sensitive-secret");
+  });
+});
+
+describe("Nuoma Yuanyi WeCom summary", () => {
+  it("summarizes assessment directions and goals without exposing identity or raw answers", () => {
+    const nuomaRecord: PersistedSubmission = {
+      ...record,
+      session: {
+        ...record.session,
+        questionnaireVersion: "nuoma-yuanyi-male-health-v1.0",
+        hasRedFlag: false,
+      },
+      healthAnswers: {
+        q1: "4",
+        q55: "0",
+        twelveWeekGoals: ["0", "5", "8"],
+        mainChange: "不应出现在群里的开放文本",
+        singleImprovement: "不应出现在群里的健康目标原文",
+      },
+      assessment: {
+        hasRedFlag: false,
+        redFlags: ["不应展示的具体红旗"],
+        domains: [
+          { id: "energy", title: "精力与恢复", level: "evaluate", reasons: ["敏感原因"], recommendation: "敏感建议" },
+          { id: "sleep", title: "睡眠与日间状态", level: "signal", reasons: [], recommendation: "敏感建议" },
+          { id: "mind", title: "压力与认知状态", level: "stable", reasons: [], recommendation: "敏感建议" },
+        ],
+      },
+    };
+
+    const markdown = buildNuomaYuanyiWeComMarkdown(nuomaRecord);
+
+    expect(markdown).toContain("诺玛元一｜新问卷概要");
+    expect(markdown).toContain("JS-TEST-0001");
+    expect(markdown).toContain("精力与恢复");
+    expect(markdown).toContain("睡眠与日间状态");
+    expect(markdown).toContain("改善睡眠、增加运动、改善饮食结构");
+    expect(markdown).toContain("未发现医学安全红旗");
+    expect(markdown).not.toContain("测试客户");
+    expect(markdown).not.toContain("138");
+    expect(markdown).not.toContain("不应出现在群里的开放文本");
+    expect(markdown).not.toContain("不应出现在群里的健康目标原文");
+    expect(markdown).not.toContain("不应展示的具体红旗");
+    expect(markdown).not.toContain("敏感原因");
+    expect(markdown).not.toContain("q55");
+  });
+
+  it("shows a clinical follow-up status without listing the red-flag answers", () => {
+    const markdown = buildNuomaYuanyiWeComMarkdown({
+      ...record,
+      session: { ...record.session, questionnaireVersion: "nuoma-yuanyi-male-health-v1.0" },
+    });
+
+    expect(markdown).toContain("存在医学安全红旗，需优先人工核实");
+    expect(markdown).not.toContain("测试风险");
   });
 });
