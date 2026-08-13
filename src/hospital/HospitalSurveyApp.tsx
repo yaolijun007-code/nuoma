@@ -10,6 +10,8 @@ import { CompletionPage } from "./components/CompletionPage";
 import { ModuleIntro } from "./components/ModuleIntro";
 import { QuestionPage } from "./components/QuestionPage";
 import { SurveyShell } from "./components/SurveyShell";
+import "./tokens.css";
+import "./mobile-survey.css";
 
 type Phase = "welcome" | "survey" | "complete";
 const today = () => new Date().toISOString().slice(0, 10);

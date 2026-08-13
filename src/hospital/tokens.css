@@ -1,0 +1,33 @@
+@layer hospital-theme {
+  :root[data-survey-brand="hospital"] {
+    --clinical-bg: #ffffff;
+    --clinical-bg-soft: #f5f9f8;
+    --clinical-surface: #ffffff;
+    --clinical-text: #18322f;
+    --clinical-text-soft: #647a77;
+    --clinical-text-faint: #8ba09d;
+    --clinical-teal: #008f82;
+    --clinical-teal-dark: #006f66;
+    --clinical-teal-soft: #e6f5f2;
+    --clinical-teal-pale: #f2faf8;
+    --clinical-line: #d9e6e3;
+    --clinical-line-strong: #bdd4cf;
+    --clinical-orange: #d66b2c;
+    --clinical-orange-soft: #fff3e8;
+    --clinical-danger: #b83b34;
+    --clinical-danger-soft: #fff1ef;
+    --clinical-shadow: 0 14px 38px rgb(23 66 60 / 8%);
+    --clinical-radius-sm: 12px;
+    --clinical-radius-md: 16px;
+    --clinical-radius-lg: 24px;
+    --clinical-space-1: 4px;
+    --clinical-space-2: 8px;
+    --clinical-space-3: 12px;
+    --clinical-space-4: 16px;
+    --clinical-space-5: 20px;
+    --clinical-space-6: 24px;
+    --clinical-space-8: 32px;
+    --clinical-space-10: 40px;
+    --clinical-font: "SF Pro Text", "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+}
