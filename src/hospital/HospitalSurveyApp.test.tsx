@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { brandRegistry } from "../brand";
 import { CompletionPage } from "./components/CompletionPage";
 import { ChoiceGroup } from "./components/ChoiceGroup";
+import { saveHospitalDraft } from "./draft";
 import { HospitalSurveyApp } from "./HospitalSurveyApp";
 import { findHospitalQuestion } from "./surveyDefinition";
 
@@ -53,5 +54,15 @@ describe("hospital one-question mobile experience", () => {
     expect(screen.getByText("微生态检测")).toBeInTheDocument();
     expect(screen.getByText(/建议由医务人员进一步确认/)).toBeInTheDocument();
     expect(screen.queryByText("您的功能状态画像")).not.toBeInTheDocument();
+  });
+
+  it("offers resume or restart for a valid hospital draft", async () => {
+    const user = userEvent.setup();
+    saveHospitalDraft({ name: "张三", phone: "13800138000", q1: "2", date: "2026-08-13" }, "q1", brandRegistry.hospital.draftKey);
+
+    render(<HospitalSurveyApp brand={brandRegistry.hospital} />);
+    expect(screen.getByText("检测到未完成的健康评估")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "继续填写" }));
+    expect(screen.getByRole("heading", { name: "您如何评价自己目前整体身体状态？" })).toBeInTheDocument();
   });
 });

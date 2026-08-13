@@ -6,6 +6,7 @@ import { submitSurvey } from "../services/submission";
 import { getVisibleSurveyPages, pruneHiddenAnswers } from "./navigation";
 import { hospitalModules } from "./surveyDefinition";
 import { validateHospitalQuestion } from "./validation";
+import { clearHospitalDraft, loadHospitalDraft, saveHospitalDraft } from "./draft";
 import { CompletionPage } from "./components/CompletionPage";
 import { ModuleIntro } from "./components/ModuleIntro";
 import { QuestionPage } from "./components/QuestionPage";
@@ -17,11 +18,13 @@ type Phase = "welcome" | "survey" | "complete";
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function HospitalSurveyApp({ brand }: { brand: SurveyBrand }) {
+  const restored = useMemo(() => loadHospitalDraft(brand.draftKey), [brand.draftKey]);
+  const [hasDraft, setHasDraft] = useState(Boolean(restored));
   const [phase, setPhase] = useState<Phase>("welcome");
   const [consent, setConsent] = useState(false);
-  const [answers, setAnswers] = useState<AnswerMap>({ date: today() });
+  const [answers, setAnswers] = useState<AnswerMap>(restored?.answers ?? { date: today() });
   const answersRef = useRef(answers);
-  const [currentPageId, setCurrentPageId] = useState("intro:identity");
+  const [currentPageId, setCurrentPageId] = useState(restored?.currentPageId ?? "intro:identity");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -41,6 +44,9 @@ export function HospitalSurveyApp({ brand }: { brand: SurveyBrand }) {
   const moduleTitle = safetyTone === "safety" ? "医学安全信息" : module.title;
 
   useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => {
+    if (phase === "survey") saveHospitalDraft(answers, currentPageId, brand.draftKey);
+  }, [answers, brand.draftKey, currentPageId, phase]);
   useEffect(() => {
     document.documentElement.dataset.surveyBrand = brand.id;
     document.title = brand.pageTitle;
@@ -70,6 +76,8 @@ export function HospitalSurveyApp({ brand }: { brand: SurveyBrand }) {
       const submitted = await submitSurvey(currentAnswers, clientSubmissionId, honeypot, brand.questionnaireVersion);
       setResult(submitted.assessment);
       setConfirmationId(submitted.confirmationId);
+      clearHospitalDraft(brand.draftKey);
+      setHasDraft(false);
       setPhase("complete");
     } catch (caught) {
       setSubmitError(caught instanceof Error ? caught.message : "提交失败，请稍后重试");
@@ -103,6 +111,17 @@ export function HospitalSurveyApp({ brand }: { brand: SurveyBrand }) {
     setError("");
   };
 
+  const restart = () => {
+    clearHospitalDraft(brand.draftKey);
+    const initialAnswers = { date: today() };
+    answersRef.current = initialAnswers;
+    setAnswers(initialAnswers);
+    setCurrentPageId("intro:identity");
+    setConsent(false);
+    setHasDraft(false);
+    setError("");
+  };
+
   if (phase === "complete" && result) return <div className="hospital-survey"><CompletionPage hasRedFlag={result.hasRedFlag} confirmationId={confirmationId} /></div>;
 
   if (phase === "welcome") return (
@@ -121,11 +140,22 @@ export function HospitalSurveyApp({ brand }: { brand: SurveyBrand }) {
           <span><Save aria-hidden="true" />自动保存</span>
         </div>
         <p className="welcome-guidance">请按照过去4周的真实感受选择，无需根据既往体检结果作答。</p>
-        <label className="hospital-consent">
-          <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
-          <span>我已了解本问卷用于健康评估参考，并同意按院方隐私说明提交信息。</span>
-        </label>
-        <button type="button" className="mobile-primary-button" disabled={!consent} onClick={() => setPhase("survey")}>开始评估 <ArrowRight aria-hidden="true" /></button>
+        {hasDraft ? (
+          <div className="resume-panel">
+            <strong>检测到未完成的健康评估</strong>
+            <span>可从上次保存的位置继续填写。</span>
+            <button type="button" className="mobile-primary-button" onClick={() => setPhase("survey")}>继续填写 <ArrowRight aria-hidden="true" /></button>
+            <button type="button" className="mobile-secondary-button" onClick={restart}>重新开始</button>
+          </div>
+        ) : (
+          <>
+            <label className="hospital-consent">
+              <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
+              <span>我已了解本问卷用于健康评估参考，并同意按院方隐私说明提交信息。</span>
+            </label>
+            <button type="button" className="mobile-primary-button" disabled={!consent} onClick={() => setPhase("survey")}>开始评估 <ArrowRight aria-hidden="true" /></button>
+          </>
+        )}
         <p className="welcome-privacy"><ShieldCheck aria-hidden="true" />健康信息将按院内要求安全保存</p>
       </section>
       <footer>上海诺玛元一生物科技发展有限公司 · 技术支持</footer>

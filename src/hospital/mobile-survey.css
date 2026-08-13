@@ -160,6 +160,13 @@
 
   .hospital-consent input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--clinical-teal); }
 
+  .resume-panel { margin-top: 24px; padding: 18px; border: 1px solid var(--clinical-line); border-radius: var(--clinical-radius-md); background: var(--clinical-teal-pale); }
+  .resume-panel strong,
+  .resume-panel span { display: block; }
+  .resume-panel strong { font-size: 15px; }
+  .resume-panel span { margin: 5px 0 15px; color: var(--clinical-text-soft); font-size: 12px; }
+  .resume-panel .mobile-secondary-button { margin-top: 8px; }
+
   .mobile-primary-button {
     width: 100%;
     min-height: 56px;
@@ -182,6 +189,18 @@
   .mobile-primary-button svg { width: 18px; height: 18px; }
   .mobile-primary-button:not(:disabled):active { transform: scale(.985); background: var(--clinical-teal); }
   .mobile-primary-button:disabled { opacity: .4; box-shadow: none; cursor: not-allowed; }
+
+  .mobile-secondary-button {
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--clinical-line-strong);
+    border-radius: var(--clinical-radius-md);
+    color: var(--clinical-text-soft);
+    background: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
 
   .welcome-privacy {
     display: flex;

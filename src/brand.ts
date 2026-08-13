@@ -24,7 +24,7 @@ export const brandRegistry: Record<SurveyBrandId, SurveyBrand> = {
     subtitle: "衰老与健康管理中心",
     eyebrow: "MALE HEALTH · V1.0",
     questionnaireVersion: "male-health-v1.0",
-    draftKey: "nuoma.health-survey.v1.draft",
+    draftKey: "nuoma.health-survey.mobile.v1.draft",
     basePath: "/health-survey/",
     themeClass: "theme-hospital",
     pageTitle: "健康与功能状态问卷｜建始民族医院",
