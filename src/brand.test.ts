@@ -7,7 +7,8 @@ describe("survey brands", () => {
       organization: "诺玛元一",
       subtitle: "生命健康管理",
       questionnaireVersion: "nuoma-yuanyi-male-health-v1.0",
-      draftKey: "nuoma.yuanyi.male-health.v1.draft",
+      draftKey: "nuoma.yuanyi.male-health.v1.single-question.draft",
+      navigationMode: "questions",
       basePath: "/nuoma-yuanyi-survey/",
       themeClass: "theme-nuoma-yuanyi",
     });
@@ -17,6 +18,7 @@ describe("survey brands", () => {
     expect(getSurveyBrand("hospital")).toMatchObject({
       organization: "建始民族医院",
       questionnaireVersion: "male-health-v1.0",
+      navigationMode: "sections",
       basePath: "/health-survey/",
     });
     expect(() => getSurveyBrand("unknown")).toThrow("未知问卷品牌");

@@ -1,4 +1,5 @@
 export type SurveyBrandId = "hospital" | "nuoma-yuanyi";
+export type SurveyNavigationMode = "sections" | "questions";
 
 export interface SurveyBrand {
   id: SurveyBrandId;
@@ -13,6 +14,7 @@ export interface SurveyBrand {
   pageDescription: string;
   consentOwner: string;
   identityDescription: string;
+  navigationMode: SurveyNavigationMode;
 }
 
 export const brandRegistry: Record<SurveyBrandId, SurveyBrand> = {
@@ -29,6 +31,7 @@ export const brandRegistry: Record<SurveyBrandId, SurveyBrand> = {
     pageDescription: "建始民族医院健康与功能状态问卷",
     consentOwner: "院方",
     identityDescription: "信息仅用于院内健康评估与记录匹配。",
+    navigationMode: "sections",
   },
   "nuoma-yuanyi": {
     id: "nuoma-yuanyi",
@@ -36,13 +39,14 @@ export const brandRegistry: Record<SurveyBrandId, SurveyBrand> = {
     subtitle: "生命健康管理",
     eyebrow: "VITALITY PROFILE · V1.0",
     questionnaireVersion: "nuoma-yuanyi-male-health-v1.0",
-    draftKey: "nuoma.yuanyi.male-health.v1.draft",
+    draftKey: "nuoma.yuanyi.male-health.v1.single-question.draft",
     basePath: "/nuoma-yuanyi-survey/",
     themeClass: "theme-nuoma-yuanyi",
     pageTitle: "健康与功能状态问卷｜诺玛元一",
     pageDescription: "诺玛元一健康与功能状态问卷",
     consentOwner: "诺玛元一",
     identityDescription: "信息仅用于健康评估与记录匹配。",
+    navigationMode: "questions",
   },
 };
 
