@@ -19,15 +19,15 @@ describe("survey application", () => {
     expect(screen.getByRole("heading", { name: "先从基本信息开始" })).toBeInTheDocument();
   });
 
-  it("keeps the independent Nuoma Yuanyi legacy validation", async () => {
+  it("keeps the independent Nuoma Yuanyi single-question validation", async () => {
     const user = userEvent.setup();
     render(<App brand={brandRegistry["nuoma-yuanyi"]} />);
     await user.click(screen.getByRole("checkbox", { name: /我已阅读并理解/ }));
     await user.click(screen.getByRole("button", { name: "开始填写" }));
-    await user.click(screen.getByRole("button", { name: "下一步" }));
+    await user.click(screen.getByRole("button", { name: "下一题" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent("还有内容需要完成");
-    expect(screen.getByRole("heading", { name: "基本信息" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "姓名" })).toBeInTheDocument();
   });
 
   it("renders the independent Nuoma Yuanyi identity without hospital copy", async () => {
@@ -81,16 +81,17 @@ describe("survey application", () => {
     expect(screen.queryByLabelText(/优先改善3个问题/)).not.toBeInTheDocument();
   });
 
-  it("preserves the existing hospital identity and section flow", async () => {
+  it("routes the hospital brand to the new identity flow without age", async () => {
     const user = userEvent.setup();
     render(<App brand={brandRegistry.hospital} />);
 
     expect(screen.getByText("建始民族医院")).toBeInTheDocument();
     expect(screen.getByText("衰老与健康管理中心")).toBeInTheDocument();
-    await user.click(screen.getByRole("checkbox", { name: /我已阅读并理解/ }));
-    await user.click(screen.getByRole("button", { name: "开始填写" }));
-    expect(screen.getByText("1 / 12")).toBeInTheDocument();
-    expect(screen.getByLabelText(/姓名/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/年龄/)).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: /同意按院方隐私说明/ }));
+    await user.click(screen.getByRole("button", { name: "开始评估" }));
+    await user.click(screen.getByRole("button", { name: "继续" }));
+    expect(screen.getByRole("textbox", { name: "请问您的姓名是？" })).toBeInTheDocument();
+    expect(screen.queryByText("1 / 64")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/年龄/)).not.toBeInTheDocument();
   });
 });
