@@ -684,6 +684,7 @@ async function sendWeComNotification(webhookUrl, markdown, fetcher = fetch) {
 // functions/submitSurvey/src/index.ts
 var app = (0, import_node_sdk.init)({ env: import_node_sdk.SYMBOL_CURRENT_ENV });
 var db = app.database();
+var DEFAULT_ALLOWED_ORIGIN = "https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com";
 var persistence = {
   async find(clientSubmissionId) {
     const sessions = await db.collection(collections.sessions).where({ clientSubmissionId }).limit(1).get();
@@ -744,7 +745,7 @@ function response(statusCode, body, origin = "*") {
   };
 }
 async function main(event) {
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || DEFAULT_ALLOWED_ORIGIN;
   const requestContext = event.requestContext;
   const method = String(event.httpMethod ?? requestContext?.httpMethod ?? "POST").toUpperCase();
   if (method === "OPTIONS") return response(204, {}, allowedOrigin);

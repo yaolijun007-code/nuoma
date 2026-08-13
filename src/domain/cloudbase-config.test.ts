@@ -8,6 +8,7 @@ describe("CloudBase function configuration", () => {
   it("deploys event handlers behind SCF gateway routes", () => {
     expect(config.functions.map((fn) => fn.type)).toEqual(["Event", "Event"]);
     expect(config.functions.map((fn) => fn.handler)).toEqual(["index.main", "index.main"]);
+    expect(config.functions.some((fn) => "envVariables" in fn)).toBe(false);
   });
 
   it("builds static assets inside the isolated health-survey path", () => {
@@ -29,5 +30,6 @@ describe("CloudBase function configuration", () => {
     const adminSource = readFileSync(new URL("../../functions/adminSurvey/src/index.ts", import.meta.url), "utf8");
     expect(submitSource).not.toContain(".add({ data:");
     expect(adminSource).not.toContain(".add({ data:");
+    expect(submitSource).toContain("DEFAULT_ALLOWED_ORIGIN");
   });
 });

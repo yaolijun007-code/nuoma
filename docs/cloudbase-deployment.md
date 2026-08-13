@@ -18,6 +18,7 @@
 7. 为 `adminSurvey` 的 HTTP 网关开启身份认证。
 8. 在 `adminSurvey` 环境变量 `ADMIN_UIDS` 中填写允许访问的 CloudBase 用户 UID，多个 UID 用英文逗号分隔。
 9. `submitSurvey` 已将 `ALLOWED_ORIGIN` 限定为当前静态托管域名；绑定自定义域名后同步修改此值，不要在生产环境使用 `*`。
+10. 在 `submitSurvey` 云函数环境变量中配置 `HOSPITAL_WECHAT_WEBHOOK_URL`。仅使用企业微信群机器人官方 HTTPS 地址；该值不得写入仓库、构建日志或前端变量。
 
 ## 构建与部署
 
@@ -31,7 +32,10 @@ npm run build:all
 npx @cloudbase/cli login
 npx @cloudbase/cli fn deploy submitSurvey -e yuecheng-survey-d4fucklsf6b68aaf
 npx @cloudbase/cli fn deploy adminSurvey -e yuecheng-survey-d4fucklsf6b68aaf
+npx @cloudbase/cli hosting deploy dist health-survey -e yuecheng-survey-d4fucklsf6b68aaf
 ```
+
+`cloudbaserc.json` 不声明云函数环境变量，避免代码部署时覆盖云端保存的机器人密钥。首次部署或更换环境后，应在控制台单独设置 `ALLOWED_ORIGIN` 和 `HOSPITAL_WECHAT_WEBHOOK_URL`，再通过只显示变量名称、不显示值的方式核验。企业微信通知只包含脱敏手机号和流程信息，不包含具体答案；通知失败会写审计日志，但不会回滚已成功入库的问卷。
 
 `npm run build` 生成医院版 `dist/`；`npm run build:nuoma-yuanyi` 生成诺玛元一版 `dist-nuoma-yuanyi/`。静态托管分别部署到 `health-survey` 与 `nuoma-yuanyi-survey` 目录。
 
@@ -54,15 +58,15 @@ VITE_SUBMIT_ENDPOINT=https://实际网关地址/api/submit-survey
 
 ## 数据验收
 
-只使用虚构测试数据提交一次，确认五个集合均出现相同 `sessionId` 的记录；确认公开页面不能读取集合；确认红旗测试记录在 `health_survey_sessions.hasRedFlag` 为 `true`。验收完成后删除虚构测试记录及其审计记录。
+只使用明确标注为“系统测试”的虚构数据提交一次，确认五个集合均出现相同 `sessionId` 的记录；确认公开页面不能读取集合；确认红旗测试记录在 `health_survey_sessions.hasRedFlag` 为 `true`；确认 `hospital_wecom_notification` 审计状态为 `sent`。验收完成后按精确会话 ID 删除虚构测试记录及其审计记录。企业微信群机器人消息无法随数据库记录一同撤回。
 
 ## 已知上游依赖风险
 
-截至 2026-08-13，最新版 `@cloudbase/node-sdk@3.18.3` 仍传递依赖旧版 `axios`、`lodash.set` 和 `lodash.unset`，`npm audit` 会报告高风险项。项目已采取以下限制：
+截至 2026-08-13，生产依赖执行 `npm audit --omit=dev` 未发现已知漏洞。项目仍采取以下边界限制：
 
 - SDK只存在于服务端云函数，不进入浏览器包；
 - 客户输入仅保留问卷白名单字段；
 - 不允许客户控制SDK请求地址、请求头或数据库操作符；
 - 数据库拒绝任何客户端直读写。
 
-正式承载真实健康数据前，应重新检查腾讯云SDK版本与安全公告；若上游仍未修复，由医院信息安全负责人决定是否接受风险或改用无该依赖的数据服务接口。
+正式承载真实健康数据前及每次升级后，应重新检查腾讯云SDK版本与安全公告。

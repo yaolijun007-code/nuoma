@@ -11,9 +11,6 @@
       "timeout": 10,
       "memorySize": 256,
       "installDependency": true,
-      "envVariables": {
-        "ALLOWED_ORIGIN": "https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com"
-      },
       "ignore": ["src", "*.test.*"]
     },
     {

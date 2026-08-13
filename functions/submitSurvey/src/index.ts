@@ -5,6 +5,7 @@ import { buildWeComMarkdown, sendWeComNotification } from "./wecom";
 
 const app = init({ env: SYMBOL_CURRENT_ENV });
 const db = app.database();
+const DEFAULT_ALLOWED_ORIGIN = "https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com";
 
 const persistence = {
   async find(clientSubmissionId: string) {
@@ -70,7 +71,7 @@ function response(statusCode: number, body: unknown, origin = "*") {
 }
 
 export async function main(event: Record<string, unknown>) {
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || DEFAULT_ALLOWED_ORIGIN;
   const requestContext = event.requestContext as Record<string, unknown> | undefined;
   const method = String(event.httpMethod ?? requestContext?.httpMethod ?? "POST").toUpperCase();
   if (method === "OPTIONS") return response(204, {}, allowedOrigin);
