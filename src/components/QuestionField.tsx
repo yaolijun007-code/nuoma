@@ -4,10 +4,11 @@ interface QuestionFieldProps {
   question: Question;
   value?: AnswerValue;
   error?: string;
+  hidePrompt?: boolean;
   onChange(value: AnswerValue): void;
 }
 
-export function QuestionField({ question, value, error, onChange }: QuestionFieldProps) {
+export function QuestionField({ question, value, error, hidePrompt = false, onChange }: QuestionFieldProps) {
   const errorId = `${question.id}-error`;
   const helperId = `${question.id}-helper`;
   const describedBy = [question.helper ? helperId : "", error ? errorId : ""].filter(Boolean).join(" ") || undefined;
@@ -16,7 +17,7 @@ export function QuestionField({ question, value, error, onChange }: QuestionFiel
     const selected = Array.isArray(value) ? value : [];
     return (
       <fieldset className={`question-card ${error ? "has-error" : ""}`} id={`field-${question.id}`} aria-describedby={describedBy}>
-        <legend>
+        <legend className={hidePrompt ? "visually-hidden" : undefined}>
           {question.number && <span className="question-number">{String(question.number).padStart(2, "0")}</span>}
           <span>{question.prompt}</span>
           {question.required && <span className="required-mark" aria-label="必填">必填</span>}
@@ -57,7 +58,7 @@ export function QuestionField({ question, value, error, onChange }: QuestionFiel
   const inputType = question.type === "number" ? "number" : question.type === "date" ? "date" : "text";
   return (
     <div className={`question-card text-question ${error ? "has-error" : ""}`} id={`field-${question.id}`}>
-      <label htmlFor={question.id}>
+      <label className={hidePrompt ? "visually-hidden" : undefined} htmlFor={question.id}>
         {question.number && <span className="question-number">{String(question.number).padStart(2, "0")}</span>}
         <span>{question.prompt}</span>
         {question.required && <span className="required-mark">必填</span>}
@@ -80,4 +81,3 @@ export function QuestionField({ question, value, error, onChange }: QuestionFiel
     </div>
   );
 }
-

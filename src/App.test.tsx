@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import App from "./App";
 import { brandRegistry } from "./brand";
+import { saveDraft } from "./domain/draft";
+import { createSurveyPages } from "./domain/survey-flow";
 
 describe("survey application", () => {
   it("requires privacy acknowledgement before starting", async () => {
@@ -40,14 +42,54 @@ describe("survey application", () => {
 
     await user.click(screen.getByRole("checkbox", { name: /我已阅读并理解/ }));
     await user.click(screen.getByRole("button", { name: "开始填写" }));
-    expect(screen.getByText("信息仅用于健康评估与记录匹配。")).toBeInTheDocument();
+    expect(screen.getByText("1 / 64")).toBeInTheDocument();
+    expect(screen.getByLabelText(/姓名/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/年龄/)).not.toBeInTheDocument();
     expect(screen.queryByText("信息仅用于院内健康评估与记录匹配。")).not.toBeInTheDocument();
   });
 
-  it("preserves the existing hospital identity", () => {
+  it("validates and advances one Nuoma question at a time", async () => {
+    const user = userEvent.setup();
+    render(<App brand={brandRegistry["nuoma-yuanyi"]} />);
+    await user.click(screen.getByRole("checkbox", { name: /我已阅读并理解/ }));
+    await user.click(screen.getByRole("button", { name: "开始填写" }));
+
+    await user.click(screen.getByRole("button", { name: "下一题" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("还有内容需要完成");
+    expect(screen.queryByLabelText(/年龄/)).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/姓名/), "张三");
+    await user.click(screen.getByRole("button", { name: "下一题" }));
+    expect(screen.getByText("2 / 64")).toBeInTheDocument();
+    expect(screen.getByLabelText(/年龄/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/姓名/)).not.toBeInTheDocument();
+  });
+
+  it("shows a Nuoma companion input on the same owner page", async () => {
+    const brand = brandRegistry["nuoma-yuanyi"];
+    const workStatusPageIndex = createSurveyPages("questions").findIndex(({ primaryQuestionId }) => primaryQuestionId === "workStatus");
+    saveDraft({ workStatus: "5" }, workStatusPageIndex, window.localStorage, Date.now(), brand.draftKey);
+    const user = userEvent.setup();
+    render(<App brand={brand} />);
+    await user.click(screen.getByRole("checkbox", { name: /我已阅读并理解/ }));
+    await user.click(screen.getByRole("button", { name: "开始填写" }));
+
+    expect(screen.getByText("5 / 64")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /职业状态/ })).toBeInTheDocument();
+    expect(screen.getByLabelText(/其他职业状态/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/优先改善3个问题/)).not.toBeInTheDocument();
+  });
+
+  it("preserves the existing hospital identity and section flow", async () => {
+    const user = userEvent.setup();
     render(<App brand={brandRegistry.hospital} />);
 
     expect(screen.getByText("建始民族医院")).toBeInTheDocument();
     expect(screen.getByText("衰老与健康管理中心")).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: /我已阅读并理解/ }));
+    await user.click(screen.getByRole("button", { name: "开始填写" }));
+    expect(screen.getByText("1 / 12")).toBeInTheDocument();
+    expect(screen.getByLabelText(/姓名/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/年龄/)).toBeInTheDocument();
   });
 });
