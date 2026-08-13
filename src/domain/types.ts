@@ -1,7 +1,13 @@
-export type AnswerValue = string | string[] | number;
+export type AnswerValue = string | string[] | number | null;
 export type AnswerMap = Record<string, AnswerValue>;
 
-export type QuestionType = "single" | "multi" | "text" | "date" | "number";
+export type QuestionType = "single" | "multi" | "text" | "phone" | "date" | "number";
+
+export interface VisibilityRule {
+  questionId: string;
+  operator: "equals" | "notEquals" | "includes";
+  values: string[];
+}
 
 export interface QuestionOption {
   value: string;
@@ -16,9 +22,20 @@ export interface Question {
   type: QuestionType;
   options?: QuestionOption[];
   required?: boolean;
+  minSelections?: number;
   maxSelections?: number;
   helper?: string;
+  subtitle?: string;
   placeholder?: string;
+  visibleWhen?: VisibilityRule;
+  exclusiveOption?: string;
+  optionsFromAnswerId?: string;
+  autoAdvance?: boolean;
+  allowSkip?: boolean;
+  confirmRequired?: boolean;
+  tone?: "default" | "safety";
+  layout?: "stack" | "grid";
+  autocomplete?: string;
 }
 
 export interface QuestionnaireSection {
@@ -52,4 +69,3 @@ export interface AssessmentResult {
   hasRedFlag: boolean;
   redFlags: string[];
 }
-
