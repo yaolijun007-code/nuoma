@@ -4,7 +4,7 @@
   "private": true,
   "main": "index.js",
   "dependencies": {
-    "@cloudbase/node-sdk": "^3.13.0"
+    "@cloudbase/node-sdk": "^3.13.0",
+    "pdfkit": "0.17.2"
   }
 }
-
