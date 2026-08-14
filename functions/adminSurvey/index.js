@@ -62,7 +62,7 @@ var collections = {
 };
 
 // functions/adminSurvey/src/index.ts
-var app = (0, import_node_sdk.init)();
+var app = (0, import_node_sdk.init)({ env: import_node_sdk.SYMBOL_CURRENT_ENV });
 var db = app.database();
 var command = db.command;
 var repository = {

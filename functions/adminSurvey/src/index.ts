@@ -1,8 +1,8 @@
-import { getCloudbaseContext, init } from "@cloudbase/node-sdk";
+import { getCloudbaseContext, init, SYMBOL_CURRENT_ENV } from "@cloudbase/node-sdk";
 import { AdminAuthorizationError, createAdminService, type WorkflowStatus } from "../../../src/domain/admin";
 import { collections } from "../../../src/domain/collections";
 
-const app = init();
+const app = init({ env: SYMBOL_CURRENT_ENV });
 const db = app.database();
 const command = db.command;
 

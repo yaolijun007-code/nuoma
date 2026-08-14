@@ -29,14 +29,14 @@ describe("CloudBase function configuration", () => {
     }
   });
 
-  it("initializes CloudBase against the current cloud-function environment", () => {
+  it("initializes CloudBase without repeating current-environment warnings", () => {
     for (const name of ["submitSurvey", "adminSurvey"]) {
       const source = readFileSync(
         new URL(`../../functions/${name}/src/index.ts`, import.meta.url),
         "utf8",
       );
-      expect(source).toContain("const app = init();");
-      expect(source).not.toContain("SYMBOL_CURRENT_ENV");
+      expect(source).toContain("const app = init({ env: SYMBOL_CURRENT_ENV });");
+      expect(source).toContain("SYMBOL_CURRENT_ENV");
     }
   });
 

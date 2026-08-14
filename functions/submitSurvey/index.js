@@ -1261,7 +1261,7 @@ function resolveWeComNotification(record, environment) {
 }
 
 // functions/submitSurvey/src/index.ts
-var app = (0, import_node_sdk.init)();
+var app = (0, import_node_sdk.init)({ env: import_node_sdk.SYMBOL_CURRENT_ENV });
 var db = app.database();
 var DEFAULT_ALLOWED_ORIGIN = "https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com";
 var persistence = {
