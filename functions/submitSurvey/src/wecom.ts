@@ -1,5 +1,6 @@
 import type { PersistedSubmission } from "../../../src/domain/submission";
 import { maleHealthV1 } from "../../../src/domain/questionnaire";
+import { findHospitalQuestion } from "../../../src/hospital/surveyDefinition";
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
@@ -7,24 +8,32 @@ function safeInline(value: string) {
   return value.replace(/[\r\n<>`\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
 
-function maskPhone(phone?: string) {
+function displayPhone(phone?: string) {
   if (!phone || !/^1\d{10}$/.test(phone)) return "未提供";
-  return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
+  return phone;
+}
+
+const hospitalConcernLabelMap = new Map(
+  findHospitalQuestion("topConcerns")?.options?.map((option) => [option.value, option.label]) ?? [],
+);
+
+function hospitalConcernLabels(record: PersistedSubmission) {
+  const selected = record.healthAnswers.topConcerns;
+  if (!Array.isArray(selected)) return "未填写";
+  const labels = [...new Set(selected.map(String))]
+    .map((value) => hospitalConcernLabelMap.get(value))
+    .filter((value): value is string => Boolean(value))
+    .slice(0, 3)
+    .map(safeInline);
+  return labels.length ? labels.join("、") : "未填写";
 }
 
 export function buildWeComMarkdown(record: PersistedSubmission) {
-  const status = record.session.hasRedFlag
-    ? '<font color="warning">建议优先人工确认</font>'
-    : '<font color="info">已完成采集</font>';
   return [
-    "### 建始民族医院｜新健康问卷",
-    `> 提交状态：${status}`,
+    "### 建始民族医院｜新问卷",
     `> 姓名：${safeInline(record.identity.name)}`,
-    `> 手机：${maskPhone(record.identity.phone)}`,
-    `> 记录编号：${safeInline(record.session.confirmationId)}`,
-    `> 提交时间：${safeInline(record.session.submittedAt)}`,
-    "",
-    "请在院内系统核实完整信息；群内通知不展示具体健康答案。",
+    `> 手机号：${displayPhone(record.identity.phone)}`,
+    `> 主要问题：${hospitalConcernLabels(record)}`,
   ].join("\n");
 }
 

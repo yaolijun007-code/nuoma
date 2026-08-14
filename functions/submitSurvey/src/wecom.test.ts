@@ -11,21 +11,37 @@ const record: PersistedSubmission = {
     submittedAt: "2026-08-13T03:00:00.000Z",
     hasRedFlag: true,
   },
-  identity: { name: "测试客户", age: null, phone: "13800138000", phoneLast4: "8000" },
-  healthAnswers: { q55: "1", q1: "3" },
+  identity: { name: "虚构\n用户", age: null, phone: "13800138000", phoneLast4: "8000" },
+  healthAnswers: { q55: "1", q1: "3", topConcerns: ["0", "1", "4"] },
   assessment: { domains: [], hasRedFlag: true, redFlags: ["测试风险"] },
 };
 
 describe("hospital WeCom notification", () => {
-  it("contains only operational details and masks the full phone", () => {
+  it("contains exactly the name, full mobile number, and selected primary concerns", () => {
     const markdown = buildWeComMarkdown(record);
-    expect(markdown).toContain("建始民族医院｜新健康问卷");
-    expect(markdown).toContain("测试客户");
-    expect(markdown).toContain("138****8000");
-    expect(markdown).toContain("建议优先人工确认");
-    expect(markdown).not.toContain("13800138000");
+    expect(markdown).toBe([
+      "### 建始民族医院｜新问卷",
+      "> 姓名：虚构 用户",
+      "> 手机号：13800138000",
+      "> 主要问题：精力不足、睡眠、压力与情绪",
+    ].join("\n"));
     expect(markdown).not.toContain("测试风险");
     expect(markdown).not.toContain("q55");
+    expect(markdown).not.toContain("记录编号");
+    expect(markdown).not.toContain("提交时间");
+    expect(markdown).not.toContain("提交状态");
+  });
+
+  it("de-duplicates concerns and safely ignores unknown values", () => {
+    const markdown = buildWeComMarkdown({
+      ...record,
+      identity: { ...record.identity, phone: "invalid" },
+      healthAnswers: { ...record.healthAnswers, topConcerns: ["0", "unknown", "0"] },
+    });
+
+    expect(markdown).toContain("> 手机号：未提供");
+    expect(markdown).toContain("> 主要问题：精力不足");
+    expect(markdown).not.toContain("unknown");
   });
 
   it("accepts only the official WeCom robot webhook host and path", async () => {
