@@ -111,7 +111,7 @@ Expected: zero test failures, typecheck/build exit 0, production audit reports z
 Update only `HOSPITAL_WECHAT_WEBHOOK_URL` in the CloudBase `submitSurvey` function environment, preserving `ALLOWED_ORIGIN` and `NUOMA_YUANYI_WECOM_WEBHOOK_URL`. Deploy with:
 
 ```bash
-npx @cloudbase/cli fn deploy submitSurvey -e yuecheng-survey-d4fucklsf6b68aaf
+npx -y -p @cloudbase/cli tcb fn deploy submitSurvey -e yuecheng-survey-d4fucklsf6b68aaf
 ```
 
 Verify only environment variable names, never values.

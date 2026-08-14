@@ -636,21 +636,25 @@ var collections = {
 function safeInline(value) {
   return value.replace(/[\r\n<>`\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
-function maskPhone(phone) {
+function displayPhone(phone) {
   if (!phone || !/^1\d{10}$/.test(phone)) return "\u672A\u63D0\u4F9B";
-  return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
+  return phone;
+}
+var hospitalConcernLabelMap = new Map(
+  findHospitalQuestion("topConcerns")?.options?.map((option) => [option.value, option.label]) ?? []
+);
+function hospitalConcernLabels(record) {
+  const selected = record.healthAnswers.topConcerns;
+  if (!Array.isArray(selected)) return "\u672A\u586B\u5199";
+  const labels = [...new Set(selected.map(String))].map((value) => hospitalConcernLabelMap.get(value)).filter((value) => Boolean(value)).slice(0, 3).map(safeInline);
+  return labels.length ? labels.join("\u3001") : "\u672A\u586B\u5199";
 }
 function buildWeComMarkdown(record) {
-  const status = record.session.hasRedFlag ? '<font color="warning">\u5EFA\u8BAE\u4F18\u5148\u4EBA\u5DE5\u786E\u8BA4</font>' : '<font color="info">\u5DF2\u5B8C\u6210\u91C7\u96C6</font>';
   return [
-    "### \u5EFA\u59CB\u6C11\u65CF\u533B\u9662\uFF5C\u65B0\u5065\u5EB7\u95EE\u5377",
-    `> \u63D0\u4EA4\u72B6\u6001\uFF1A${status}`,
+    "### \u5EFA\u59CB\u6C11\u65CF\u533B\u9662\uFF5C\u65B0\u95EE\u5377",
     `> \u59D3\u540D\uFF1A${safeInline(record.identity.name)}`,
-    `> \u624B\u673A\uFF1A${maskPhone(record.identity.phone)}`,
-    `> \u8BB0\u5F55\u7F16\u53F7\uFF1A${safeInline(record.session.confirmationId)}`,
-    `> \u63D0\u4EA4\u65F6\u95F4\uFF1A${safeInline(record.session.submittedAt)}`,
-    "",
-    "\u8BF7\u5728\u9662\u5185\u7CFB\u7EDF\u6838\u5B9E\u5B8C\u6574\u4FE1\u606F\uFF1B\u7FA4\u5185\u901A\u77E5\u4E0D\u5C55\u793A\u5177\u4F53\u5065\u5EB7\u7B54\u6848\u3002"
+    `> \u624B\u673A\u53F7\uFF1A${displayPhone(record.identity.phone)}`,
+    `> \u4E3B\u8981\u95EE\u9898\uFF1A${hospitalConcernLabels(record)}`
   ].join("\n");
 }
 var twelveWeekGoalLabels = new Map(
