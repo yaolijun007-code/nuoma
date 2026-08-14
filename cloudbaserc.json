@@ -8,7 +8,7 @@
       "type": "Event",
       "runtime": "Nodejs20.19",
       "handler": "index.main",
-      "timeout": 10,
+      "timeout": 30,
       "memorySize": 256,
       "installDependency": true,
       "ignore": ["src", "*.test.*"]

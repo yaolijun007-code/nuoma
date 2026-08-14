@@ -1,8 +1,9 @@
 import { init, SYMBOL_CURRENT_ENV } from "@cloudbase/node-sdk";
+import path from "node:path";
 import { createSubmissionService, SubmissionError, type PersistedSubmission } from "../../../src/domain/submission";
 import { collections } from "../../../src/domain/collections";
+import { deliverResolvedWeComNotification } from "./notification-workflow";
 import { resolveWeComNotification } from "./notification";
-import { sendWeComNotification } from "./wecom";
 
 const app = init({ env: SYMBOL_CURRENT_ENV });
 const db = app.database();
@@ -29,25 +30,20 @@ const persistence = {
 
     const notification = resolveWeComNotification(record, process.env);
     if (notification) {
-      let notificationStatus = "not_configured";
-      if (notification.webhookUrl) {
+      const audits = await deliverResolvedWeComNotification(record, notification, {
+        fontPath: path.join(__dirname, "assets", "NotoSansCJKsc-Regular.otf"),
+      });
+      for (const audit of audits) {
         try {
-          await sendWeComNotification(notification.webhookUrl, notification.markdown);
-          notificationStatus = "sent";
+          await db.collection(collections.auditLogs).add({
+            sessionId,
+            action: audit.action,
+            status: audit.status,
+            createdAt: new Date().toISOString(),
+          });
         } catch {
-          notificationStatus = "failed";
-          console.error(notification.failureLog);
+          console.error("WeCom notification audit write failed");
         }
-      }
-      try {
-        await db.collection(collections.auditLogs).add({
-          sessionId,
-          action: notification.auditAction,
-          status: notificationStatus,
-          createdAt: new Date().toISOString(),
-        });
-      } catch {
-        console.error("WeCom notification audit write failed");
       }
     }
   },

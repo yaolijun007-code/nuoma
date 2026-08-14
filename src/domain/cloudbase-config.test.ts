@@ -11,6 +11,11 @@ describe("CloudBase function configuration", () => {
     expect(config.functions.some((fn) => "envVariables" in fn)).toBe(false);
   });
 
+  it("allows enough time for the hospital summary, PDF upload, and file message", () => {
+    const submitSurvey = config.functions.find((fn) => fn.name === "submitSurvey");
+    expect(submitSurvey?.timeout).toBeGreaterThanOrEqual(20);
+  });
+
   it("builds static assets inside the isolated health-survey path", () => {
     expect(viteConfig.base).toBe("/health-survey/");
   });

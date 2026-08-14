@@ -8,6 +8,10 @@ export interface ResolvedWeComNotification {
   markdown: string;
   auditAction: "hospital_wecom_notification" | "nuoma_yuanyi_wecom_notification";
   failureLog: string;
+  report?: {
+    auditAction: "hospital_wecom_report_notification";
+    failureLog: string;
+  };
 }
 
 export function resolveWeComNotification(
@@ -29,6 +33,10 @@ export function resolveWeComNotification(
       markdown: buildWeComMarkdown(record),
       auditAction: "hospital_wecom_notification",
       failureLog: "hospital WeCom notification failed",
+      report: {
+        auditAction: "hospital_wecom_report_notification",
+        failureLog: "hospital WeCom PDF report delivery failed",
+      },
     };
   }
 

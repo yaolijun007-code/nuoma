@@ -28,6 +28,7 @@ describe("WeCom notification routing", () => {
       auditAction: "nuoma_yuanyi_wecom_notification",
       failureLog: "Nuoma Yuanyi WeCom notification failed",
     });
+    expect(resolved?.report).toBeUndefined();
     expect(resolved?.markdown).toContain("诺玛元一｜新问卷概要");
   });
 
@@ -41,6 +42,10 @@ describe("WeCom notification routing", () => {
     expect(resolved).toMatchObject({
       webhookUrl: "hospital-webhook",
       auditAction: "hospital_wecom_notification",
+      report: {
+        auditAction: "hospital_wecom_report_notification",
+        failureLog: "hospital WeCom PDF report delivery failed",
+      },
     });
     expect(resolved?.markdown).toContain("建始民族医院｜新健康问卷");
   });
