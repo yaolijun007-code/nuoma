@@ -9,9 +9,10 @@ interface ChoiceGroupProps {
   onChange(value: AnswerValue): void;
   onAutoAdvance?(): void;
   updateMultiChoice?(question: Question, selected: string[], optionValue: string): string[];
+  errorId?: string;
 }
 
-export function ChoiceGroup({ question, value, onChange, onAutoAdvance, updateMultiChoice = updateExclusiveSelection }: ChoiceGroupProps) {
+export function ChoiceGroup({ question, value, onChange, onAutoAdvance, updateMultiChoice = updateExclusiveSelection, errorId }: ChoiceGroupProps) {
   const timer = useRef<number | undefined>(undefined);
   const selected = Array.isArray(value) ? value : [];
 
@@ -26,7 +27,7 @@ export function ChoiceGroup({ question, value, onChange, onAutoAdvance, updateMu
   };
 
   return (
-    <fieldset className={`choice-group ${question.layout === "grid" ? "choice-grid" : ""}`}>
+    <fieldset className={`choice-group ${question.layout === "grid" ? "choice-grid" : ""}`} aria-required={Boolean(question.required)} aria-invalid={Boolean(errorId)} aria-describedby={errorId}>
       <legend className="sr-only">{question.prompt}</legend>
       {question.options?.map((option) => {
         const checked = question.type === "single" ? value === option.value : selected.includes(option.value);

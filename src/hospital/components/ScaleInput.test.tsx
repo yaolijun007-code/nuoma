@@ -9,6 +9,7 @@ describe("ScaleInput", () => {
     const onChange = vi.fn();
     render(<ScaleInput value={undefined} onChange={onChange} />);
     expect(screen.getAllByRole("radio")).toHaveLength(11);
+    expect(screen.getByRole("group", { name: "整体健康状态评分" })).toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: "8分" }));
     expect(onChange).toHaveBeenCalledWith(8);
   });

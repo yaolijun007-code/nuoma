@@ -1,6 +1,6 @@
 # 健康与功能状态问卷
 
-本项目同时提供“建始民族医院”和“诺玛元一”两套独立品牌问卷。医院版采用面向微信的“一题一页”移动端流程，公开链接无需注册；诺玛元一采用64个单题页，条件补充输入与所属问题同屏。两者共享经过验证的55道题、八维非诊断性画像、医学红旗规则和CloudBase安全存储，但使用独立访问路径、页面品牌、问卷版本和48小时本地草稿。
+本项目提供建始民族医院男性版、建始民族医院女性版和诺玛元一三套独立问卷。医院男女版均采用面向微信的“一题一页”移动端流程，公开链接无需注册；女性版为独立的55题问卷、八维女性健康画像和女性三页PDF。三套问卷共享CloudBase安全存储，但使用独立访问路径、页面品牌、问卷版本和48小时本地草稿。
 
 ## 本地运行
 
@@ -19,6 +19,8 @@ VITE_SURVEY_BRAND=nuoma-yuanyi npm run dev
 
 当前公开体验地址：<https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com/health-survey/>
 
+建始民族医院女性版：<https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com/women-health-survey/>
+
 诺玛元一公开地址：<https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com/nuoma-yuanyi-survey/>
 
 ## 验证
@@ -29,7 +31,7 @@ npm run typecheck
 npm run build:all
 ```
 
-`npm run build` 生成医院版 `dist/`；`npm run build:nuoma-yuanyi` 生成诺玛元一版 `dist-nuoma-yuanyi/`。
+`npm run build` 生成医院男性版 `dist/`；`npm run build:hospital-female` 生成医院女性版 `dist-women-health-survey/`；`npm run build:nuoma-yuanyi` 生成诺玛元一版 `dist-nuoma-yuanyi/`。
 
 ## 项目结构
 
@@ -38,8 +40,9 @@ npm run build:all
 - `src/domain/assessment.ts`：内部非诊断性触发规则。
 - `src/domain/submission.ts`：提交校验、幂等和数据分离。
 - `src/hospital`：医院版一题一页导航、条件分支、断点续填与临床视觉组件。
+- `src/female`：女性55题定义、条件分支、八维评估、独立视觉与填写流程。
 - `src/components`：客户填写和结果组件。
-- `functions/submitSurvey`：公开提交云函数，以及失败不阻断入库的医院流程通知与诺玛元一脱敏问卷概要通知。
+- `functions/submitSurvey`：公开提交云函数，以及失败不阻断入库的男女医院摘要/PDF与诺玛元一脱敏概要通知。
 - `functions/adminSurvey`：需身份认证的院内管理API。
 - `docs/cloudbase-deployment.md`：云端配置、安全与部署步骤。
 

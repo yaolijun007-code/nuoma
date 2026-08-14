@@ -31,7 +31,7 @@ export function QuestionPage({ question, value, error, date, onChange, onContinu
       </div>
 
       {isChoice ? (
-        <ChoiceGroup question={question} value={value} onChange={onChange} onAutoAdvance={onAutoAdvance} updateMultiChoice={updateMultiChoice} />
+        <ChoiceGroup question={question} value={value} onChange={onChange} onAutoAdvance={onAutoAdvance} updateMultiChoice={updateMultiChoice} errorId={error ? `${question.id}-error` : undefined} />
       ) : question.type === "scale" ? (
         <ScaleInput value={value} onChange={onChange} />
       ) : (
@@ -39,10 +39,10 @@ export function QuestionPage({ question, value, error, date, onChange, onContinu
       )}
 
       {question.type === "phone" && <p className="automatic-date">填写日期 <strong>{date}</strong> · 系统自动记录</p>}
-      {question.helper && <p className="question-helper">{question.helper}</p>}
+      {question.helper && <p className="question-helper" id={`${question.id}-helper`}>{question.helper}</p>}
       {question.type === "multi" && question.maxSelections && <p className="selection-status" aria-live="polite">已选择 {selectionCount} / {question.maxSelections}</p>}
       {question.tone === "safety" && value === "1" && <p className="safety-recorded" role="status">已记录。完成问卷后将由医务人员进一步确认。</p>}
-      {error && isChoice && <p className="field-error" role="alert">{error}</p>}
+      {error && isChoice && <p className="field-error" id={`${question.id}-error`} role="alert">{error}</p>}
 
       {requiresButton && (
         <div className="mobile-bottom-action">
