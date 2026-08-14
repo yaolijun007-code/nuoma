@@ -5,6 +5,10 @@ import { validateStep } from "./validation";
 import { normalizeHospitalAnswers } from "../hospital/normalize";
 import { hospitalSurvey } from "../hospital/surveyDefinition";
 import { validateHospitalSubmission } from "../hospital/validation";
+import { assessFemaleSurvey } from "../female/assessment";
+import { normalizeFemaleAnswers } from "../female/normalize";
+import { femaleSurvey } from "../female/surveyDefinition";
+import { validateFemaleSubmission } from "../female/validation";
 
 export interface SubmissionPayload {
   questionnaireVersion: string;
@@ -45,11 +49,13 @@ export class SubmissionError extends Error {
 const allowedAnswerIds = new Set([
   ...maleHealthV1.sections.flatMap((section) => section.questions.map((question) => question.id)),
   ...hospitalSurvey.pages.filter((page) => page.kind === "question").map((page) => page.id),
+  ...femaleSurvey.pages.filter((page) => page.kind === "question").map((page) => page.id),
   "date",
 ]);
 export const supportedQuestionnaireVersions = new Set([
   maleHealthV1.version,
   "nuoma-yuanyi-male-health-v1.0",
+  femaleSurvey.version,
 ]);
 
 function parsePayload(input: unknown): SubmissionPayload {
@@ -75,10 +81,13 @@ function parsePayload(input: unknown): SubmissionPayload {
       throw new SubmissionError("INVALID_PAYLOAD", "选项内容格式不正确");
     }
   }
-  const mobileHospitalPayload = typeof payload.answers.phone === "string";
-  const errors = mobileHospitalPayload
-    ? Object.values(validateHospitalSubmission(payload.answers))
-    : maleHealthV1.sections.flatMap((section) => Object.values(validateStep(section.id, payload.answers!)));
+  const femalePayload = payload.questionnaireVersion === femaleSurvey.version;
+  const mobileHospitalPayload = !femalePayload && typeof payload.answers.phone === "string";
+  const errors = femalePayload
+    ? Object.values(validateFemaleSubmission(payload.answers))
+    : mobileHospitalPayload
+      ? Object.values(validateHospitalSubmission(payload.answers))
+      : maleHealthV1.sections.flatMap((section) => Object.values(validateStep(section.id, payload.answers!)));
   if (errors.length) throw new SubmissionError("INVALID_PAYLOAD", "问卷尚未完整填写");
   return payload as SubmissionPayload;
 }
@@ -95,11 +104,17 @@ export function createSubmissionService(persistence: SubmissionPersistence) {
       const existing = await persistence.find(payload.clientSubmissionId);
       if (existing) return existing;
 
-      const mobileHospitalPayload = typeof payload.answers.phone === "string";
+      const femalePayload = payload.questionnaireVersion === femaleSurvey.version;
+      const mobileHospitalPayload = !femalePayload && typeof payload.answers.phone === "string";
       let identity: PersistedSubmission["identity"];
       let healthAnswers: Record<string, unknown>;
       let assessmentAnswers: AnswerMap;
-      if (mobileHospitalPayload) {
+      if (femalePayload) {
+        const normalized = normalizeFemaleAnswers(payload.answers);
+        identity = normalized.identity;
+        healthAnswers = normalized.healthAnswers;
+        assessmentAnswers = normalized.assessmentAnswers;
+      } else if (mobileHospitalPayload) {
         const normalized = normalizeHospitalAnswers(payload.answers);
         identity = normalized.identity;
         healthAnswers = normalized.healthAnswers;
@@ -120,7 +135,7 @@ export function createSubmissionService(persistence: SubmissionPersistence) {
         assessmentAnswers = sanitized;
       }
 
-      const assessment = assessSurvey(assessmentAnswers);
+      const assessment = femalePayload ? assessFemaleSurvey(assessmentAnswers) : assessSurvey(assessmentAnswers);
       const id = confirmationId();
       await persistence.save({
         session: {

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createSubmissionService, SubmissionError } from "./submission";
 import type { AnswerMap } from "./types";
 import { validHospitalAnswers } from "../test/hospitalAnswers";
+import { validFemaleAnswers } from "../test/femaleAnswers";
 
 const validAnswers = (): AnswerMap => ({
   name: "张三", age: 45, phoneLast4: "0826", date: "2026-08-13",
@@ -84,5 +85,27 @@ describe("createSubmissionService", () => {
     await service.submit(payload({ answers: validHospitalAnswers() }));
 
     expect(save.mock.calls[0][0].identity).toEqual({ name: "虚构用户", phone: "13800000000", phoneLast4: "0000", age: null });
+  });
+
+  it("routes the female questionnaire through female normalization and assessment", async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    const service = createSubmissionService({ find: vi.fn().mockResolvedValue(null), save });
+    const answers = validFemaleAnswers();
+    answers.f4 = "2";
+    answers.f13 = "2";
+
+    const response = await service.submit(payload({ questionnaireVersion: "female-health-v1.0", answers }));
+    const record = save.mock.calls[0][0];
+    expect(record.session.questionnaireVersion).toBe("female-health-v1.0");
+    expect(record.identity).toEqual({ name: "虚构女性用户", phone: "13800000000", phoneLast4: "0000", age: 52 });
+    expect(record.healthAnswers).not.toHaveProperty("f1");
+    expect(response.assessment.domains.find((item) => item.id === "sleep")?.level).toBe("evaluate");
+  });
+
+  it("rejects incomplete or invalid female answers", async () => {
+    const service = createSubmissionService({ find: vi.fn(), save: vi.fn() });
+    const answers = validFemaleAnswers();
+    answers.f53 = ["0", "1", "2", "3"];
+    await expect(service.submit(payload({ questionnaireVersion: "female-health-v1.0", answers }))).rejects.toMatchObject({ code: "INVALID_PAYLOAD" });
   });
 });

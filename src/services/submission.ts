@@ -14,6 +14,10 @@ export async function submitSurvey(
   const endpoint = import.meta.env.VITE_SUBMIT_ENDPOINT;
   if (!endpoint) {
     if (import.meta.env.DEV || import.meta.env.MODE === "test") {
+      if (questionnaireVersion === "female-health-v1.0") {
+        const { assessFemaleSurvey } = await import("../female/assessment");
+        return { confirmationId: `PREVIEW-${Date.now().toString(36).toUpperCase()}`, assessment: assessFemaleSurvey(answers) };
+      }
       const { assessSurvey } = await import("../domain/assessment");
       return { confirmationId: `PREVIEW-${Date.now().toString(36).toUpperCase()}`, assessment: assessSurvey(answers) };
     }
