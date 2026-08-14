@@ -12,6 +12,7 @@
     "build:functions": "node scripts/build-functions.mjs",
     "build:all": "npm run build && npm run build:hospital-female && npm run build:nuoma-yuanyi && npm run build:functions",
     "report:sample": "tsx scripts/render-hospital-report-sample.ts",
+    "report:female-sample": "tsx scripts/render-female-report-sample.ts",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",

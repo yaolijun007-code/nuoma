@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PersistedSubmission } from "../../../src/domain/submission";
 import type { HospitalClientReportModel } from "./report-model";
-import { deliverHospitalClientReport } from "./report-delivery";
+import { deliverFemaleClientReport, deliverHospitalClientReport } from "./report-delivery";
 import { WeComDeliveryError } from "./wecom";
 
 const record = {
@@ -106,5 +106,25 @@ describe("hospital client report delivery", () => {
 
     expect(standardLog).toHaveBeenCalledWith("hospital WeCom PDF report delivery failed (upload:api_44001)");
     standardLog.mockRestore();
+  });
+});
+
+describe("female client report delivery", () => {
+  it("renders, uploads, and sends the female PDF", async () => {
+    const upload = vi.fn(async () => "FEMALE-MEDIA-ID");
+    const send = vi.fn(async () => undefined);
+    const renderPdf = vi.fn(async () => Buffer.from("%PDF-female"));
+    const filename = vi.fn(() => "female-report.pdf");
+
+    await expect(deliverFemaleClientReport(record, "hospital-webhook", {
+      fontPath: "/fonts/noto.otf",
+      buildModel: vi.fn(() => ({ name: "李女士", confirmationId: "JS-FEMALE" })) as never,
+      renderPdf: renderPdf as never,
+      filename: filename as never,
+      upload,
+      send,
+    })).resolves.toBe("sent");
+    expect(upload).toHaveBeenCalledWith("hospital-webhook", "female-report.pdf", Buffer.from("%PDF-female"));
+    expect(send).toHaveBeenCalledWith("hospital-webhook", "FEMALE-MEDIA-ID");
   });
 });

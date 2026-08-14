@@ -23,6 +23,7 @@ const hospitalNotification: ResolvedWeComNotification = {
   auditAction: "hospital_wecom_notification",
   failureLog: "hospital summary failed",
   report: {
+    kind: "male",
     auditAction: "hospital_wecom_report_notification",
     failureLog: "hospital PDF failed",
   },
@@ -98,6 +99,30 @@ describe("resolved WeCom notification workflow", () => {
     })).resolves.toEqual([
       { action: "nuoma_yuanyi_wecom_notification", status: "sent" },
     ]);
+    expect(deliverReport).not.toHaveBeenCalled();
+  });
+
+  it("dispatches female reports through the female renderer", async () => {
+    const deliverReport = vi.fn();
+    const deliverFemaleReport = vi.fn(async () => "sent" as const);
+    const notification: ResolvedWeComNotification = {
+      webhookUrl: "hospital-webhook",
+      markdown: "female-markdown",
+      auditAction: "hospital_female_wecom_notification",
+      failureLog: "female summary failed",
+      report: { kind: "female", auditAction: "hospital_female_wecom_report_notification", failureLog: "female PDF failed" },
+    };
+
+    await expect(deliverResolvedWeComNotification(record, notification, {
+      fontPath: "/fonts/noto.otf",
+      sendMarkdown: vi.fn(async () => undefined),
+      deliverReport,
+      deliverFemaleReport,
+    })).resolves.toEqual([
+      { action: "hospital_female_wecom_notification", status: "sent" },
+      { action: "hospital_female_wecom_report_notification", status: "sent" },
+    ]);
+    expect(deliverFemaleReport).toHaveBeenCalledWith(record, "hospital-webhook", { fontPath: "/fonts/noto.otf" });
     expect(deliverReport).not.toHaveBeenCalled();
   });
 });
