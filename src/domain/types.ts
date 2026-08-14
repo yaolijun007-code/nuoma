@@ -1,7 +1,7 @@
 export type AnswerValue = string | string[] | number | null;
 export type AnswerMap = Record<string, AnswerValue>;
 
-export type QuestionType = "single" | "multi" | "text" | "phone" | "date" | "number";
+export type QuestionType = "single" | "multi" | "text" | "phone" | "date" | "number" | "scale";
 
 export interface VisibilityRule {
   questionId: string;
