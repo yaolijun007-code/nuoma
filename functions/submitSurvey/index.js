@@ -1741,7 +1741,7 @@ function domainPage(doc, model) {
     const accent = levelColor2(d.level);
     panel(doc, x, y, cardW, cardH, i % 3 === 0 ? c.ivory : c.white);
     doc.save().roundedRect(x, y, 5, cardH, 3).fill(accent).restore();
-    value2(doc, d.title, x + 16, y + 14, cardW - 126, 11.5, c.plumDeep, 23);
+    value2(doc, d.title, x + 16, y + 13, cardW - 126, 9.8, c.plumDeep, 27);
     pill(doc, d.levelLabel, x + cardW - 106, y + 11, accent, 94);
     label2(doc, "\u4E3B\u8981\u7EBF\u7D22", x + 16, y + 51);
     value2(doc, d.reason, x + 16, y + 66, cardW - 32, 8.7, c.ink, 31);
@@ -1767,9 +1767,9 @@ function detailsPage(doc, model) {
   model.lifestyle.slice(0, 4).forEach((item, i) => {
     const x = M + i % 2 * (lw + 11);
     const y = ly + Math.floor(i / 2) * 70;
-    panel(doc, x, y, lw, 59, i % 3 === 0 ? c.ivory : c.lilac);
+    panel(doc, x, y, lw, 64, i % 3 === 0 ? c.ivory : c.lilac);
     label2(doc, item.label, x + 13, y + 10);
-    value2(doc, item.value, x + 13, y + 28, lw - 26, 9.3, c.ink, 23);
+    value2(doc, item.value, x + 13, y + 27, lw - 26, 8.3, c.ink, 33);
   });
   heading(doc, "7", "\u65E2\u5F80\u4E0E\u5BB6\u65CF\u5065\u5EB7\u7EBF\u7D22", 424);
   const hy = 465;
