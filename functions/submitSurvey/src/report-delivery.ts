@@ -28,15 +28,19 @@ export async function deliverHospitalClientReport(
   const upload = dependencies.upload ?? uploadWeComFile;
   const send = dependencies.send ?? sendWeComFile;
   const logError = dependencies.logError ?? console.error;
+  let phase: "model" | "render" | "upload" | "send" = "model";
 
   try {
     const model = buildModel(record);
+    phase = "render";
     const pdf = await renderPdf(model, dependencies.fontPath);
+    phase = "upload";
     const mediaId = await upload(webhookUrl, filename(model), pdf);
+    phase = "send";
     await send(webhookUrl, mediaId);
     return "sent";
   } catch {
-    logError("hospital WeCom PDF report delivery failed");
+    logError(`hospital WeCom PDF report delivery failed (${phase})`);
     return "failed";
   }
 }

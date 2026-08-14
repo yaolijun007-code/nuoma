@@ -75,7 +75,7 @@ describe("hospital client report delivery", () => {
       renderPdf: vi.fn(async () => { throw new Error("sensitive upstream response"); }),
       logError,
     })).resolves.toBe("failed");
-    expect(logError).toHaveBeenCalledWith("hospital WeCom PDF report delivery failed");
+    expect(logError).toHaveBeenCalledWith("hospital WeCom PDF report delivery failed (render)");
     expect(JSON.stringify(logError.mock.calls)).not.toContain("sensitive-hospital-webhook");
     expect(JSON.stringify(logError.mock.calls)).not.toContain("sensitive upstream response");
   });
