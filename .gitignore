@@ -9,6 +9,8 @@ coverage/
 .DS_Store
 /work/
 /outputs/
+/output/
+/tmp/pdfs/
 .worktrees/
 .cloudbase/
 *.tsbuildinfo

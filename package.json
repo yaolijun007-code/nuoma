@@ -10,6 +10,7 @@
     "build:nuoma-yuanyi": "VITE_SURVEY_BRAND=nuoma-yuanyi tsc -b && VITE_SURVEY_BRAND=nuoma-yuanyi vite build --outDir dist-nuoma-yuanyi",
     "build:functions": "node scripts/build-functions.mjs",
     "build:all": "npm run build && npm run build:nuoma-yuanyi && npm run build:functions",
+    "report:sample": "tsx scripts/render-hospital-report-sample.ts",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -33,6 +34,7 @@
     "esbuild": "^0.28.2",
     "jsdom": "^25.0.1",
     "pdfkit": "^0.17.2",
+    "tsx": "^4.20.5",
     "typescript": "~5.7.2",
     "vite": "^6.0.5",
     "vitest": "^2.1.8"

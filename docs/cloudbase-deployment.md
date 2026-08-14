@@ -37,6 +37,8 @@ npx -y -p @cloudbase/cli tcb hosting deploy dist health-survey -e yuecheng-surve
 
 `cloudbaserc.json` 不声明云函数环境变量，避免代码部署时覆盖云端保存的机器人密钥。首次部署或更换环境后，应在控制台单独设置 `ALLOWED_ORIGIN`、`HOSPITAL_WECHAT_WEBHOOK_URL` 和 `NUOMA_YUANYI_WECOM_WEBHOOK_URL`，再通过只显示变量名称、不显示值的方式核验。医院通知使用带图标与颜色标签的单条 Markdown，包含四级跟进状态、姓名、完整手机号、3个主要问题、最明显变化、首要改善目标、八维分类数量、上海时间和记录编号；红旗记录只显示“需医务人员优先核实”和“安全信息待人工核实”，不展示具体答案。由于群内展示完整手机号，机器人只能加入经授权的院内工作群。诺玛元一通知仅包含记录编号、安全状态、评估方向、变化信号和12周目标，不包含姓名、手机号、开放文本、逐题答案或具体红旗内容。通知失败会写审计日志，但不会回滚已成功入库的问卷。
 
+医院摘要之后，系统使用同一机器人上传并发送三页 A4 客户版 PDF，内容包括核心诉求、八维状态卡片、状态分布条、生活方式概览和12周目标。PDF由云函数使用随包部署的 Noto Sans CJK SC 开源字体生成，不调用第三方报告服务；逐题答案、具体医学安全答案和内部触发规则不进入群附件，仍只能通过鉴权保护的 `adminSurvey` 读取。摘要和 PDF 分别写入 `hospital_wecom_notification` 与 `hospital_wecom_report_notification` 审计，任一通知失败均不回滚已入库问卷。
+
 `npm run build` 生成医院版 `dist/`；`npm run build:nuoma-yuanyi` 生成诺玛元一版 `dist-nuoma-yuanyi/`。静态托管分别部署到 `health-survey` 与 `nuoma-yuanyi-survey` 目录。
 
 两套构建共享题目与提交协议，但前端导航不同：医院版按12个模块填写，诺玛元一按64个主问题逐题填写。诺玛元一单题模式使用独立草稿键，部署后不会把旧模块索引误读成问题页索引。
