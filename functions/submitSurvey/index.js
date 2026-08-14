@@ -999,6 +999,7 @@ function renderHospitalClientReportPdf(model, fontPath) {
 }
 
 // functions/submitSurvey/src/wecom.ts
+var WECOM_UPLOAD_TIMEOUT_MS = 15e3;
 function safeInline(value2) {
   return value2.replace(/[\r\n<>`\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
@@ -1144,7 +1145,7 @@ async function uploadWeComFile(webhookUrl, filename, file, fetcher = fetch) {
     const response2 = await fetcher(uploadUrl, {
       method: "POST",
       body: form,
-      signal: AbortSignal.timeout(5e3)
+      signal: AbortSignal.timeout(WECOM_UPLOAD_TIMEOUT_MS)
     });
     const result = await response2.json();
     if (!response2.ok || result.errcode !== 0 || !result.media_id) throw new Error("rejected");

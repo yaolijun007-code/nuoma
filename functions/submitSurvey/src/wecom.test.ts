@@ -7,6 +7,7 @@ import {
   sendWeComFile,
   sendWeComNotification,
   uploadWeComFile,
+  WECOM_UPLOAD_TIMEOUT_MS,
 } from "./wecom";
 
 const record: PersistedSubmission = {
@@ -111,6 +112,10 @@ describe("hospital WeCom notification", () => {
 
 describe("hospital WeCom PDF file delivery", () => {
   const webhook = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test-file-key";
+
+  it("allows enough time for media uploads over the cloud-function network", () => {
+    expect(WECOM_UPLOAD_TIMEOUT_MS).toBe(15_000);
+  });
 
   it("uploads a UTF-8 PDF as multipart media and returns its media id", async () => {
     const pdf = Buffer.from("%PDF-test-file");

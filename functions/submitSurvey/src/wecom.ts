@@ -4,6 +4,8 @@ import { findHospitalQuestion } from "../../../src/hospital/surveyDefinition";
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
+export const WECOM_UPLOAD_TIMEOUT_MS = 15_000;
+
 function safeInline(value: string) {
   return value.replace(/[\r\n<>`\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
@@ -192,7 +194,7 @@ export async function uploadWeComFile(
     const response = await fetcher(uploadUrl, {
       method: "POST",
       body: form,
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.timeout(WECOM_UPLOAD_TIMEOUT_MS),
     });
     const result = await response.json() as { errcode?: number; media_id?: string };
     if (!response.ok || result.errcode !== 0 || !result.media_id) throw new Error("rejected");
