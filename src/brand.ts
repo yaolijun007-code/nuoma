@@ -1,4 +1,4 @@
-export type SurveyBrandId = "hospital" | "nuoma-yuanyi";
+export type SurveyBrandId = "hospital" | "hospital-female" | "nuoma-yuanyi";
 export type SurveyNavigationMode = "sections" | "questions";
 
 export interface SurveyBrand {
@@ -32,6 +32,21 @@ export const brandRegistry: Record<SurveyBrandId, SurveyBrand> = {
     consentOwner: "院方",
     identityDescription: "信息仅用于院内健康评估与记录匹配。",
     navigationMode: "sections",
+  },
+  "hospital-female": {
+    id: "hospital-female",
+    organization: "建始民族医院",
+    subtitle: "衰老与健康管理中心",
+    eyebrow: "WOMEN'S HEALTH · V1.0",
+    questionnaireVersion: "female-health-v1.0",
+    draftKey: "nuoma.hospital.female-health.v1.draft",
+    basePath: "/women-health-survey/",
+    themeClass: "theme-hospital-female",
+    pageTitle: "女性健康与功能状态问卷｜建始民族医院",
+    pageDescription: "建始民族医院女性健康与功能状态问卷",
+    consentOwner: "院方",
+    identityDescription: "信息仅用于院内健康评估与记录匹配。",
+    navigationMode: "questions",
   },
   "nuoma-yuanyi": {
     id: "nuoma-yuanyi",

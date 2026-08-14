@@ -47,9 +47,14 @@ describe("CloudBase function configuration", () => {
     expect(viteConfig.base).toBe("/health-survey/");
   });
 
-  it("resolves independent paths and metadata for both brands", () => {
+  it("resolves independent paths and metadata for all brands", () => {
     expect(resolveBrandBase("hospital")).toBe("/health-survey/");
+    expect(resolveBrandBase("hospital-female")).toBe("/women-health-survey/");
     expect(resolveBrandBase("nuoma-yuanyi")).toBe("/nuoma-yuanyi-survey/");
+    expect(resolveBrandMetadata("hospital-female")).toMatchObject({
+      title: "女性健康与功能状态问卷｜建始民族医院",
+      description: "建始民族医院女性健康与功能状态问卷",
+    });
     expect(resolveBrandMetadata("nuoma-yuanyi")).toMatchObject({
       title: "健康与功能状态问卷｜诺玛元一",
       description: "诺玛元一健康与功能状态问卷",

@@ -7,6 +7,11 @@ const brandBuilds = {
     title: "健康与功能状态问卷｜建始民族医院",
     description: "建始民族医院健康与功能状态问卷",
   },
+  "hospital-female": {
+    base: "/women-health-survey/",
+    title: "女性健康与功能状态问卷｜建始民族医院",
+    description: "建始民族医院女性健康与功能状态问卷",
+  },
   "nuoma-yuanyi": {
     base: "/nuoma-yuanyi-survey/",
     title: "健康与功能状态问卷｜诺玛元一",

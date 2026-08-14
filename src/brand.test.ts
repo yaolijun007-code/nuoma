@@ -23,4 +23,15 @@ describe("survey brands", () => {
     });
     expect(() => getSurveyBrand("unknown")).toThrow("未知问卷品牌");
   });
+
+  it("defines an isolated hospital female brand", () => {
+    expect(getSurveyBrand("hospital-female")).toMatchObject({
+      organization: "建始民族医院",
+      questionnaireVersion: "female-health-v1.0",
+      draftKey: "nuoma.hospital.female-health.v1.draft",
+      navigationMode: "questions",
+      basePath: "/women-health-survey/",
+      themeClass: "theme-hospital-female",
+    });
+  });
 });
