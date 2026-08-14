@@ -1,6 +1,8 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __export = (target, all) => {
   for (var name in all)
@@ -14,6 +16,14 @@ var __copyProps = (to, from, except, desc) => {
   }
   return to;
 };
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // functions/submitSurvey/src/index.ts
@@ -23,6 +33,7 @@ __export(index_exports, {
 });
 module.exports = __toCommonJS(index_exports);
 var import_node_sdk = require("@cloudbase/node-sdk");
+var import_node_path = __toESM(require("node:path"));
 
 // src/domain/assessment.ts
 var score = (answers, id) => Number(answers[id] ?? 0);
@@ -80,7 +91,7 @@ function assessSurvey(answers) {
 }
 
 // src/domain/questionnaire.ts
-var scored = (labels) => labels.map((label, score2) => ({ value: String(score2), label, score: score2 }));
+var scored = (labels) => labels.map((label2, score2) => ({ value: String(score2), label: label2, score: score2 }));
 var frequency = scored(["\u4ECE\u4E0D", "\u5076\u5C14", "\u6709\u65F6", "\u7ECF\u5E38", "\u51E0\u4E4E\u6BCF\u5929"]);
 var trend = scored(["\u660E\u663E\u53D8\u597D", "\u7565\u6709\u53D8\u597D", "\u57FA\u672C\u6CA1\u53D8\u5316", "\u7565\u6709\u4E0B\u964D", "\u660E\u663E\u4E0B\u964D"]);
 var yesNo = [
@@ -111,9 +122,9 @@ var maleHealthV1 = {
         { id: "age", prompt: "\u5E74\u9F84", type: "number", required: true, placeholder: "40\u201455" },
         { id: "phoneLast4", prompt: "\u624B\u673A\u53F7\u540E4\u4F4D", type: "text", required: true, placeholder: "\u4F8B\u5982 0826", helper: "\u4EC5\u7528\u4E8E\u533A\u5206\u540C\u540D\u5BA2\u6237\uFF0C\u4E0D\u6536\u96C6\u5B8C\u6574\u624B\u673A\u53F7\u3002" },
         { id: "date", prompt: "\u586B\u5199\u65E5\u671F", type: "date", required: true },
-        { id: "workStatus", prompt: "\u804C\u4E1A\u72B6\u6001", type: "single", required: true, options: ["\u89C4\u5F8B\u65E5\u95F4\u5DE5\u4F5C", "\u7ECF\u5E38\u52A0\u73ED", "\u5012\u73ED\u6216\u591C\u73ED", "\u5DE5\u4F5C\u65F6\u95F4\u4E0D\u89C4\u5F8B", "\u81EA\u7531\u804C\u4E1A", "\u5176\u4ED6"].map((label, index) => ({ value: String(index), label })) },
+        { id: "workStatus", prompt: "\u804C\u4E1A\u72B6\u6001", type: "single", required: true, options: ["\u89C4\u5F8B\u65E5\u95F4\u5DE5\u4F5C", "\u7ECF\u5E38\u52A0\u73ED", "\u5012\u73ED\u6216\u591C\u73ED", "\u5DE5\u4F5C\u65F6\u95F4\u4E0D\u89C4\u5F8B", "\u81EA\u7531\u804C\u4E1A", "\u5176\u4ED6"].map((label2, index) => ({ value: String(index), label: label2 })) },
         { id: "workStatusOther", prompt: "\u5176\u4ED6\u804C\u4E1A\u72B6\u6001", type: "text", placeholder: "\u5982\u9009\u62E9\u5176\u4ED6\uFF0C\u8BF7\u586B\u5199" },
-        { id: "topConcerns", prompt: "\u5982\u679C\u53EA\u80FD\u4F18\u5148\u6539\u55843\u4E2A\u95EE\u9898\uFF0C\u60A8\u76EE\u524D\u6700\u5E0C\u671B\u6539\u5584\u7684\u662F", type: "multi", required: true, maxSelections: 3, options: ["\u7CBE\u529B\u4E0D\u8DB3", "\u7761\u7720", "\u4F53\u91CD\u6216\u8179\u90E8\u8102\u80AA", "\u6392\u4FBF\u6216\u80C3\u80A0\u4E0D\u9002", "\u538B\u529B\u4E0E\u60C5\u7EEA", "\u8BB0\u5FC6\u529B\u6216\u6CE8\u610F\u529B", "\u8FD0\u52A8\u80FD\u529B", "\u808C\u8089\u529B\u91CF", "\u8170\u80CC\u6216\u5173\u8282\u4E0D\u9002", "\u6027\u6B32\u6216\u6027\u529F\u80FD", "\u6392\u5C3F\u95EE\u9898", "\u996E\u9152\u540E\u7684\u8EAB\u4F53\u6062\u590D", "\u5176\u4ED6"].map((label, index) => ({ value: String(index), label })) },
+        { id: "topConcerns", prompt: "\u5982\u679C\u53EA\u80FD\u4F18\u5148\u6539\u55843\u4E2A\u95EE\u9898\uFF0C\u60A8\u76EE\u524D\u6700\u5E0C\u671B\u6539\u5584\u7684\u662F", type: "multi", required: true, maxSelections: 3, options: ["\u7CBE\u529B\u4E0D\u8DB3", "\u7761\u7720", "\u4F53\u91CD\u6216\u8179\u90E8\u8102\u80AA", "\u6392\u4FBF\u6216\u80C3\u80A0\u4E0D\u9002", "\u538B\u529B\u4E0E\u60C5\u7EEA", "\u8BB0\u5FC6\u529B\u6216\u6CE8\u610F\u529B", "\u8FD0\u52A8\u80FD\u529B", "\u808C\u8089\u529B\u91CF", "\u8170\u80CC\u6216\u5173\u8282\u4E0D\u9002", "\u6027\u6B32\u6216\u6027\u529F\u80FD", "\u6392\u5C3F\u95EE\u9898", "\u996E\u9152\u540E\u7684\u8EAB\u4F53\u6062\u590D", "\u5176\u4ED6"].map((label2, index) => ({ value: String(index), label: label2 })) },
         { id: "topConcernsOther", prompt: "\u5176\u4ED6\u5E0C\u671B\u6539\u5584\u7684\u95EE\u9898", type: "text", placeholder: "\u8BF7\u7B80\u8981\u586B\u5199" },
         { id: "mainChange", prompt: "\u6700\u8FD1\u534A\u5E74\uFF0C\u60A8\u81EA\u5DF1\u611F\u53D7\u6700\u660E\u663E\u7684\u4E00\u9879\u8EAB\u4F53\u53D8\u5316\u662F", type: "text", required: true, placeholder: "\u7528\u4E00\u4E24\u53E5\u8BDD\u63CF\u8FF0\u5373\u53EF" }
       ]
@@ -230,7 +241,7 @@ var maleHealthV1 = {
         single(45, "\u60A8\u76EE\u524D\u5438\u70DF\u60C5\u51B5\uFF1A", scored(["\u4ECE\u4E0D\u5438\u70DF", "\u5DF2\u6212\u70DF", "\u5076\u5C14\u5438", "\u6BCF\u5929\u5438\u70DF\u4F46\uFF1C10\u652F", "\u6BCF\u5929\u226510\u652F"])),
         single(46, "\u665A\u9910\u8FC7\u665A\u3001\u591C\u5BB5\u3001\u5E94\u916C\u6216\u7761\u524D3\u5C0F\u65F6\u5185\u5927\u91CF\u8FDB\u98DF\u3002"),
         single(47, "\u4EE5\u4E0B\u4E94\u7C7B\u98DF\u7269\u6709\u51E0\u7C7B\u80FD\u591F\u7A33\u5B9A\u6BCF\u5468\u6444\u5165\uFF1A\u852C\u83DC\u3001\u6C34\u679C\u3001\u5168\u8C37\u7269/\u6742\u7CAE\u3001\u8C46\u7C7B/\u8C46\u5236\u54C1\u3001\u575A\u679C/\u79CD\u5B50\u3002", scored(["\u4E94\u7C7B\u5747\u8F83\u89C4\u5F8B", "\u56DB\u7C7B", "\u4E09\u7C7B", "\u4E00\u81F3\u4E24\u7C7B", "\u57FA\u672C\u7F3A\u5C11\u4E0A\u8FF0\u98DF\u7269"])),
-        { id: "q48", number: 48, prompt: "\u8FD13\u4E2A\u6708\u662F\u5426\u4F7F\u7528\u8FC7\u4EE5\u4E0B\u4EA7\u54C1\u6216\u836F\u7269\uFF1F", type: "multi", required: true, options: ["\u6297\u751F\u7D20", "\u6CFB\u836F", "\u6291\u9178\u836F", "\u76CA\u751F\u83CC", "\u76CA\u751F\u5143", "\u86CB\u767D\u7C89", "\u51CF\u91CD\u836F\u7269", "\u7761\u7720\u836F\u7269", "\u6FC0\u7D20\u76F8\u5173\u836F\u7269", "\u5176\u4ED6\u8425\u517B\u8865\u5145\u5242", "\u5747\u65E0"].map((label, index) => ({ value: String(index), label })) },
+        { id: "q48", number: 48, prompt: "\u8FD13\u4E2A\u6708\u662F\u5426\u4F7F\u7528\u8FC7\u4EE5\u4E0B\u4EA7\u54C1\u6216\u836F\u7269\uFF1F", type: "multi", required: true, options: ["\u6297\u751F\u7D20", "\u6CFB\u836F", "\u6291\u9178\u836F", "\u76CA\u751F\u83CC", "\u76CA\u751F\u5143", "\u86CB\u767D\u7C89", "\u51CF\u91CD\u836F\u7269", "\u7761\u7720\u836F\u7269", "\u6FC0\u7D20\u76F8\u5173\u836F\u7269", "\u5176\u4ED6\u8425\u517B\u8865\u5145\u5242", "\u5747\u65E0"].map((label2, index) => ({ value: String(index), label: label2 })) },
         { id: "q48Details", prompt: "\u5982\u6709\uFF0C\u8BF7\u586B\u5199\u540D\u79F0\u53CA\u5927\u81F4\u4F7F\u7528\u65F6\u95F4", type: "text", placeholder: "\u540D\u79F0\u53CA\u4F7F\u7528\u65F6\u95F4" }
       ]
     },
@@ -254,7 +265,7 @@ var maleHealthV1 = {
       eyebrow: "11 / \u884C\u52A8\u610F\u613F",
       title: "\u4E2A\u4EBA\u5065\u5EB7\u76EE\u6807",
       questions: [
-        { id: "twelveWeekGoals", prompt: "\u8BF7\u9009\u62E9\u672A\u676512\u5468\u6700\u613F\u610F\u5B9E\u9645\u6539\u53D8\u76843\u4EF6\u4E8B\u60C5", type: "multi", required: true, maxSelections: 3, options: ["\u6539\u5584\u7761\u7720", "\u51CF\u5C11\u75B2\u52B3", "\u51CF\u5C11\u8179\u90E8\u8102\u80AA", "\u6539\u5584\u6392\u4FBF", "\u51CF\u5C11\u8179\u80C0", "\u589E\u52A0\u8FD0\u52A8", "\u589E\u52A0\u529B\u91CF\u8BAD\u7EC3", "\u51CF\u5C11\u996E\u9152", "\u6539\u5584\u996E\u98DF\u7ED3\u6784", "\u7BA1\u7406\u538B\u529B", "\u6539\u5584\u7537\u6027\u6D3B\u529B", "\u6539\u5584\u6392\u5C3F", "\u63D0\u9AD8\u6CE8\u610F\u529B\u548C\u5DE5\u4F5C\u6548\u7387", "\u5176\u4ED6"].map((label, index) => ({ value: String(index), label })) },
+        { id: "twelveWeekGoals", prompt: "\u8BF7\u9009\u62E9\u672A\u676512\u5468\u6700\u613F\u610F\u5B9E\u9645\u6539\u53D8\u76843\u4EF6\u4E8B\u60C5", type: "multi", required: true, maxSelections: 3, options: ["\u6539\u5584\u7761\u7720", "\u51CF\u5C11\u75B2\u52B3", "\u51CF\u5C11\u8179\u90E8\u8102\u80AA", "\u6539\u5584\u6392\u4FBF", "\u51CF\u5C11\u8179\u80C0", "\u589E\u52A0\u8FD0\u52A8", "\u589E\u52A0\u529B\u91CF\u8BAD\u7EC3", "\u51CF\u5C11\u996E\u9152", "\u6539\u5584\u996E\u98DF\u7ED3\u6784", "\u7BA1\u7406\u538B\u529B", "\u6539\u5584\u7537\u6027\u6D3B\u529B", "\u6539\u5584\u6392\u5C3F", "\u63D0\u9AD8\u6CE8\u610F\u529B\u548C\u5DE5\u4F5C\u6548\u7387", "\u5176\u4ED6"].map((label2, index) => ({ value: String(index), label: label2 })) },
         { id: "twelveWeekGoalsOther", prompt: "\u5176\u4ED6\u76EE\u6807", type: "text", placeholder: "\u8BF7\u586B\u5199" },
         { id: "singleImprovement", prompt: "\u5982\u679C\u672A\u676512\u5468\u53EA\u80FD\u770B\u5230\u4E00\u4E2A\u660E\u663E\u6539\u5584\uFF0C\u60A8\u6700\u5E0C\u671B\u662F\u4EC0\u4E48\uFF1F", type: "text", required: true, placeholder: "\u5199\u4E0B\u6700\u91CD\u8981\u7684\u4E00\u4E2A\u53D8\u5316" }
       ]
@@ -263,7 +274,7 @@ var maleHealthV1 = {
 };
 
 // src/domain/validation.ts
-var isEmpty = (value) => value === void 0 || value === "" || Array.isArray(value) && value.length === 0;
+var isEmpty = (value2) => value2 === void 0 || value2 === "" || Array.isArray(value2) && value2.length === 0;
 var questionById = new Map(
   maleHealthV1.sections.flatMap((section) => section.questions).map((question) => [question.id, question])
 );
@@ -275,12 +286,12 @@ function validateQuestions(questionIds2, answers) {
       errors[questionId] = "\u95EE\u5377\u9898\u76EE\u4E0D\u5B58\u5728";
       continue;
     }
-    const value = answers[question.id];
-    if (question.required && isEmpty(value)) {
+    const value2 = answers[question.id];
+    if (question.required && isEmpty(value2)) {
       errors[question.id] = question.type === "text" || question.type === "number" || question.type === "date" ? "\u8BF7\u586B\u5199\u6B64\u9879" : "\u8BF7\u9009\u62E9\u4E00\u9879";
       continue;
     }
-    if (question.maxSelections && Array.isArray(value) && value.length > question.maxSelections) {
+    if (question.maxSelections && Array.isArray(value2) && value2.length > question.maxSelections) {
       errors[question.id] = `\u6700\u591A\u9009\u62E9${question.maxSelections}\u9879`;
     }
   }
@@ -307,7 +318,7 @@ var cloneLegacy = (id, overrides = {}) => {
   if (!question) throw new Error(`\u7F3A\u5C11\u65E2\u6709\u9898\u76EE\uFF1A${id}`);
   return { ...question, ...overrides, options: overrides.options ?? question.options };
 };
-var options = (labels) => labels.map((label, index) => ({ value: String(index), label }));
+var options = (labels) => labels.map((label2, index) => ({ value: String(index), label: label2 }));
 var hospitalModules = [
   { id: "identity", index: 1, title: "\u57FA\u672C\u4FE1\u606F", introTitle: "\u5148\u4ECE\u57FA\u672C\u4FE1\u606F\u5F00\u59CB", introDescription: "\u53EA\u9700\u586B\u5199\u59D3\u540D\u4E0E\u624B\u673A\u53F7\uFF0C\u65E5\u671F\u5C06\u7531\u7CFB\u7EDF\u81EA\u52A8\u8BB0\u5F55\u3002" },
   { id: "overall", index: 2, title: "\u5F53\u524D\u5173\u6CE8\u4E0E\u6574\u4F53\u72B6\u6001", introTitle: "\u5148\u4E86\u89E3\u60A8\u6700\u5173\u6CE8\u7684\u53D8\u5316", introDescription: "\u8FD9\u4E9B\u9009\u62E9\u5C06\u5E2E\u52A9\u5065\u5EB7\u7BA1\u7406\u5E08\u786E\u5B9A\u540E\u7EED\u6C9F\u901A\u91CD\u70B9\u3002" },
@@ -413,7 +424,7 @@ function isVisible(question, answers) {
   const rule = question.visibleWhen;
   if (!rule) return true;
   const answer = answers[rule.questionId];
-  if (rule.operator === "includes") return Array.isArray(answer) && rule.values.some((value) => answer.includes(value));
+  if (rule.operator === "includes") return Array.isArray(answer) && rule.values.some((value2) => answer.includes(value2));
   if (rule.operator === "notEquals") return !rule.values.includes(String(answer ?? ""));
   return rule.values.includes(String(answer ?? ""));
 }
@@ -445,23 +456,23 @@ function pruneHiddenAnswers(answers) {
 var questionIds = new Set(
   hospitalSurvey.pages.filter((page2) => page2.kind === "question").map((page2) => page2.id)
 );
-function q47Score(value) {
-  if (!Array.isArray(value) || value.includes("5")) return "4";
-  const count = new Set(value).size;
+function q47Score(value2) {
+  if (!Array.isArray(value2) || value2.includes("5")) return "4";
+  const count = new Set(value2).size;
   if (count >= 5) return "0";
   if (count === 4) return "1";
   if (count === 3) return "2";
   if (count >= 1) return "3";
   return "4";
 }
-function optionLabel(questionId, value) {
-  return findHospitalQuestion(questionId)?.options?.find((option) => option.value === value)?.label ?? "";
+function optionLabel(questionId, value2) {
+  return findHospitalQuestion(questionId)?.options?.find((option) => option.value === value2)?.label ?? "";
 }
 function normalizeHospitalAnswers(input) {
   const answers = pruneHiddenAnswers(input);
   const healthAnswers = {};
-  for (const [id, value] of Object.entries(answers)) {
-    if (questionIds.has(id) && id !== "name" && id !== "phone") healthAnswers[id] = value;
+  for (const [id, value2] of Object.entries(answers)) {
+    if (questionIds.has(id) && id !== "name" && id !== "phone") healthAnswers[id] = value2;
   }
   healthAnswers.date = String(answers.date ?? "");
   healthAnswers.workStatusOther = "";
@@ -476,17 +487,17 @@ function normalizeHospitalAnswers(input) {
   healthAnswers.q47 = derivedQ47;
   const sensitiveAnswers = {};
   for (const id of ["q35", "q36", "q37"]) {
-    const value = answers[id];
-    if (value === "__skip__") {
+    const value2 = answers[id];
+    if (value2 === "__skip__") {
       healthAnswers[id] = null;
       sensitiveAnswers[id] = { answered: false, value: null };
     } else {
-      sensitiveAnswers[id] = { answered: true, value: String(value ?? "") };
+      sensitiveAnswers[id] = { answered: true, value: String(value2 ?? "") };
     }
   }
   healthAnswers.sensitiveAnswers = sensitiveAnswers;
   const assessmentAnswers = Object.fromEntries(
-    Object.entries(healthAnswers).filter(([, value]) => value === null || typeof value === "string" || typeof value === "number" || Array.isArray(value))
+    Object.entries(healthAnswers).filter(([, value2]) => value2 === null || typeof value2 === "string" || typeof value2 === "number" || Array.isArray(value2))
   );
   assessmentAnswers.q47 = derivedQ47;
   const phone = String(answers.phone ?? "");
@@ -498,19 +509,19 @@ function normalizeHospitalAnswers(input) {
 }
 
 // src/hospital/validation.ts
-var isEmpty2 = (value) => value === void 0 || value === null || value === "" || Array.isArray(value) && value.length === 0;
+var isEmpty2 = (value2) => value2 === void 0 || value2 === null || value2 === "" || Array.isArray(value2) && value2.length === 0;
 function validateHospitalQuestion(question, answers) {
-  const value = answers[question.id];
-  if (question.required && isEmpty2(value)) return question.type === "text" || question.type === "phone" ? "\u8BF7\u586B\u5199\u6B64\u9879" : "\u8BF7\u9009\u62E9\u4E00\u9879";
-  if (question.type === "phone" && !/^1[3-9]\d{9}$/.test(String(value ?? ""))) return "\u8BF7\u8F93\u5165\u6709\u6548\u768411\u4F4D\u4E2D\u56FD\u5927\u9646\u624B\u673A\u53F7\u7801";
-  if (question.id === "name" && !String(value ?? "").trim()) return "\u8BF7\u586B\u5199\u59D3\u540D";
-  if (question.type === "multi" && Array.isArray(value)) {
-    if (question.minSelections && value.length < question.minSelections) return `\u8BF7\u81F3\u5C11\u9009\u62E9${question.minSelections}\u9879`;
-    if (question.maxSelections && value.length > question.maxSelections) return `\u6700\u591A\u9009\u62E9${question.maxSelections}\u9879`;
+  const value2 = answers[question.id];
+  if (question.required && isEmpty2(value2)) return question.type === "text" || question.type === "phone" ? "\u8BF7\u586B\u5199\u6B64\u9879" : "\u8BF7\u9009\u62E9\u4E00\u9879";
+  if (question.type === "phone" && !/^1[3-9]\d{9}$/.test(String(value2 ?? ""))) return "\u8BF7\u8F93\u5165\u6709\u6548\u768411\u4F4D\u4E2D\u56FD\u5927\u9646\u624B\u673A\u53F7\u7801";
+  if (question.id === "name" && !String(value2 ?? "").trim()) return "\u8BF7\u586B\u5199\u59D3\u540D";
+  if (question.type === "multi" && Array.isArray(value2)) {
+    if (question.minSelections && value2.length < question.minSelections) return `\u8BF7\u81F3\u5C11\u9009\u62E9${question.minSelections}\u9879`;
+    if (question.maxSelections && value2.length > question.maxSelections) return `\u6700\u591A\u9009\u62E9${question.maxSelections}\u9879`;
   }
   if (question.optionsFromAnswerId) {
     const source = answers[question.optionsFromAnswerId];
-    if (!Array.isArray(source) || !source.includes(String(value ?? ""))) return "\u8BF7\u9009\u62E9\u524D\u9762\u5DF2\u5173\u6CE8\u7684\u4E00\u9879";
+    if (!Array.isArray(source) || !source.includes(String(value2 ?? ""))) return "\u8BF7\u9009\u62E9\u524D\u9762\u5DF2\u5173\u6CE8\u7684\u4E00\u9879";
   }
   return void 0;
 }
@@ -558,10 +569,10 @@ function parsePayload(input) {
   if (JSON.stringify(payload.answers).length > 5e4) {
     throw new SubmissionError("INVALID_PAYLOAD", "\u63D0\u4EA4\u5185\u5BB9\u8D85\u51FA\u9650\u5236");
   }
-  for (const [key, value] of Object.entries(payload.answers)) {
+  for (const [key, value2] of Object.entries(payload.answers)) {
     if (!allowedAnswerIds.has(key)) continue;
-    if (typeof value === "string" && value.length > 2e3) throw new SubmissionError("INVALID_PAYLOAD", "\u6587\u672C\u5185\u5BB9\u8D85\u51FA\u9650\u5236");
-    if (Array.isArray(value) && (value.length > 20 || value.some((item) => typeof item !== "string" || item.length > 80))) {
+    if (typeof value2 === "string" && value2.length > 2e3) throw new SubmissionError("INVALID_PAYLOAD", "\u6587\u672C\u5185\u5BB9\u8D85\u51FA\u9650\u5236");
+    if (Array.isArray(value2) && (value2.length > 20 || value2.some((item) => typeof item !== "string" || item.length > 80))) {
       throw new SubmissionError("INVALID_PAYLOAD", "\u9009\u9879\u5185\u5BB9\u683C\u5F0F\u4E0D\u6B63\u786E");
     }
   }
@@ -632,9 +643,364 @@ var collections = {
   auditLogs: "health_audit_logs"
 };
 
+// functions/submitSurvey/src/report-model.ts
+var levelLabels = {
+  clinical_priority: "\u4F18\u5148\u4E34\u5E8A\u6838\u5B9E",
+  evaluate: "\u5EFA\u8BAE\u8FDB\u4E00\u6B65\u8BC4\u4F30",
+  signal: "\u5B58\u5728\u53D8\u5316\u4FE1\u53F7",
+  stable: "\u57FA\u672C\u7A33\u5B9A"
+};
+var questionLabels = (id) => new Map(
+  findHospitalQuestion(id)?.options?.map((option) => [option.value, option.label]) ?? []
+);
+var topConcernLabels = questionLabels("topConcerns");
+var mainChangeLabels = questionLabels("mainChange");
+var twelveWeekGoalLabels = questionLabels("twelveWeekGoals");
+function safeText(value2, fallback = "\u672A\u586B\u5199", maxLength = 160) {
+  const text = String(value2 ?? "").replace(/[\u0000-\u001f\u007f<>`\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
+  return text || fallback;
+}
+function mappedAnswer(record, id) {
+  return questionLabels(id).get(String(record.healthAnswers[id] ?? "")) ?? "\u672A\u586B\u5199";
+}
+function mappedMulti(record, id, labels = questionLabels(id)) {
+  const value2 = record.healthAnswers[id];
+  if (!Array.isArray(value2)) return [];
+  return [...new Set(value2.map(String))].map((item) => labels.get(item)).filter((item) => Boolean(item)).map((item) => safeText(item));
+}
+function formattedSubmittedAt(value2) {
+  const date = new Date(value2);
+  if (Number.isNaN(date.getTime())) return "\u65F6\u95F4\u5F85\u6838\u5B9E";
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(date).map((part) => [part.type, part.value]));
+  return `${parts.year}\u5E74${parts.month}\u6708${parts.day}\u65E5 ${parts.hour}:${parts.minute}`;
+}
+function followUpLabel(record) {
+  if (record.session.hasRedFlag) return "\u9700\u533B\u52A1\u4EBA\u5458\u4F18\u5148\u6838\u5B9E";
+  const evaluate = record.assessment.domains.filter(({ level }) => level === "evaluate").length;
+  const signal = record.assessment.domains.filter(({ level }) => level === "signal").length;
+  if (evaluate >= 2) return "\u5EFA\u8BAE\u91CD\u70B9\u8DDF\u8FDB";
+  if (evaluate + signal > 0) return "\u5B58\u5728\u53D8\u5316\u4FE1\u53F7";
+  return "\u5E38\u89C4\u5065\u5EB7\u7BA1\u7406";
+}
+function primaryGoal(record) {
+  const selected = record.healthAnswers.topConcerns;
+  const goal = String(record.healthAnswers.singleImprovement ?? "");
+  if (!Array.isArray(selected) || !selected.map(String).includes(goal)) return "\u672A\u586B\u5199";
+  return topConcernLabels.get(goal) ?? "\u672A\u586B\u5199";
+}
+function buildHospitalClientReportModel(record) {
+  const hasRedFlag = record.session.hasRedFlag || record.assessment.hasRedFlag;
+  const counts = (level) => record.assessment.domains.filter((domain2) => domain2.level === level).length;
+  const lifestyle = [
+    { label: "\u804C\u4E1A\u72B6\u6001", value: mappedAnswer(record, "workStatus") },
+    { label: "\u4E45\u5750\u65F6\u95F4", value: mappedAnswer(record, "q41") },
+    { label: "\u4E2D\u7B49\u5F3A\u5EA6\u8FD0\u52A8", value: mappedAnswer(record, "q42") },
+    { label: "\u529B\u91CF\u8BAD\u7EC3", value: mappedAnswer(record, "q43") },
+    { label: "\u996E\u9152\u60C5\u51B5", value: mappedAnswer(record, "q44") },
+    { label: "\u5438\u70DF\u60C5\u51B5", value: mappedAnswer(record, "q45") },
+    { label: "\u665A\u95F4\u8FDB\u98DF", value: mappedAnswer(record, "q46") },
+    { label: "\u89C4\u5F8B\u6444\u5165\u98DF\u7269", value: mappedMulti(record, "q47").join("\u3001") || "\u672A\u586B\u5199" }
+  ];
+  return {
+    institution: "\u5EFA\u59CB\u6C11\u65CF\u533B\u9662",
+    title: "\u7537\u6027\u5065\u5EB7\u4E0E\u529F\u80FD\u72B6\u6001\u8BC4\u4F30\u62A5\u544A",
+    name: safeText(record.identity.name, "\u672A\u586B\u5199", 80),
+    phone: /^1\d{10}$/.test(record.identity.phone ?? "") ? record.identity.phone : "\u672A\u63D0\u4F9B",
+    confirmationId: safeText(record.session.confirmationId, "\u8BB0\u5F55\u7F16\u53F7\u5F85\u6838\u5B9E", 80),
+    submittedAt: formattedSubmittedAt(record.session.submittedAt),
+    followUpLabel: followUpLabel(record),
+    concerns: mappedMulti(record, "topConcerns", topConcernLabels).slice(0, 3),
+    mainChange: mainChangeLabels.get(String(record.healthAnswers.mainChange ?? "")) ?? "\u672A\u586B\u5199",
+    primaryGoal: primaryGoal(record),
+    statusCounts: { evaluate: counts("evaluate"), signal: counts("signal"), stable: counts("stable") },
+    domains: record.assessment.domains.slice(0, 8).map((domain2) => ({
+      title: safeText(domain2.title, "\u672A\u547D\u540D\u7EF4\u5EA6", 40),
+      level: hasRedFlag ? "clinical_priority" : domain2.level,
+      levelLabel: levelLabels[hasRedFlag ? "clinical_priority" : domain2.level],
+      reason: hasRedFlag ? "\u5B89\u5168\u4FE1\u606F\u5F85\u4EBA\u5DE5\u6838\u5B9E" : safeText(domain2.reasons[0], "\u5F53\u524D\u672A\u53D1\u73B0\u660E\u663E\u53D8\u5316\u4FE1\u53F7", 100),
+      recommendation: hasRedFlag ? "\u8BF7\u7531\u533B\u52A1\u4EBA\u5458\u5148\u5B8C\u6210\u4FE1\u606F\u6838\u5B9E\u4E0E\u98CE\u9669\u5224\u65AD\u3002" : safeText(domain2.recommendation, "\u5EFA\u8BAE\u4FDD\u6301\u5F53\u524D\u4E60\u60EF\u5E76\u6301\u7EED\u89C2\u5BDF\u53D8\u5316\u3002", 180)
+    })),
+    lifestyle,
+    twelveWeekGoals: mappedMulti(record, "twelveWeekGoals", twelveWeekGoalLabels).slice(0, 3),
+    safetyNotice: hasRedFlag ? "\u533B\u5B66\u5B89\u5168\u4FE1\u606F\u9700\u8981\u533B\u52A1\u4EBA\u5458\u4F18\u5148\u6838\u5B9E\uFF0C\u8BF7\u5148\u5B8C\u6210\u98CE\u9669\u5224\u65AD\uFF0C\u518D\u51B3\u5B9A\u5065\u5EB7\u7BA1\u7406\u8DEF\u5F84\u3002" : null
+  };
+}
+
+// functions/submitSurvey/src/report-pdf.ts
+var import_pdfkit = __toESM(require("pdfkit"));
+var PAGE_WIDTH = 595.28;
+var PAGE_HEIGHT = 841.89;
+var MARGIN = 46;
+var CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+var TOTAL_PAGES = 3;
+var colors = {
+  navy: "#0B2745",
+  blue: "#1479B8",
+  cyan: "#00A6A6",
+  orange: "#F0783C",
+  red: "#D9544D",
+  green: "#159A7D",
+  ink: "#17324D",
+  muted: "#62778B",
+  line: "#DCE7F0",
+  pale: "#F3F8FC",
+  white: "#FFFFFF"
+};
+var levelColor = (level) => ({
+  clinical_priority: colors.red,
+  evaluate: colors.orange,
+  signal: colors.blue,
+  stable: colors.green
+})[level];
+function safeFilenamePart(value2, maxLength) {
+  return [...value2.replace(/[^\p{L}\p{N} _.\-]/gu, "").replace(/\s+/g, "")].slice(0, maxLength).join("") || "\u672A\u547D\u540D";
+}
+function hospitalClientReportFilename(model) {
+  const name = safeFilenamePart(model.name, 24);
+  const confirmationId2 = safeFilenamePart(model.confirmationId, 40);
+  return `\u5EFA\u59CB\u6C11\u65CF\u533B\u9662_\u5065\u5EB7\u8BC4\u4F30\u62A5\u544A_${name}_${confirmationId2}.pdf`;
+}
+function roundedPanel(doc, x, y, width, height, fill = colors.white, stroke = colors.line, radius = 10) {
+  doc.save().roundedRect(x, y, width, height, radius).fillAndStroke(fill, stroke).restore();
+}
+function label(doc, text, x, y, color = colors.muted) {
+  doc.fontSize(8.5).fillColor(color).text(text, x, y, { lineBreak: false });
+}
+function value(doc, text, x, y, width, size = 11, color = colors.ink, height = 34) {
+  doc.fontSize(size).fillColor(color).text(text, x, y, { width, height, ellipsis: true, lineGap: 2 });
+}
+function statusPill(doc, text, x, y, color, width = 104) {
+  doc.save().roundedRect(x, y, width, 24, 12).fill(color).restore();
+  doc.fontSize(9).fillColor(colors.white).text(text, x, y + 6, { width, align: "center", lineBreak: false });
+}
+function sectionTitle(doc, index, title, y, subtitle) {
+  doc.save().circle(MARGIN + 10, y + 10, 10).fill(colors.blue).restore();
+  doc.fontSize(9).fillColor(colors.white).text(index, MARGIN + 1, y + 5, { width: 18, align: "center", lineBreak: false });
+  doc.fontSize(15).fillColor(colors.navy).text(title, MARGIN + 29, y + 2, { lineBreak: false });
+  if (subtitle) {
+    doc.fontSize(8.5).fillColor(colors.muted).text(subtitle, MARGIN + 29, y + 22, { width: CONTENT_WIDTH - 29 });
+  }
+}
+function pageChrome(doc, model, pageNumber) {
+  if (pageNumber > 1) {
+    doc.save().rect(0, 0, PAGE_WIDTH, 8).fill(colors.cyan).restore();
+    doc.fontSize(9).fillColor(colors.navy).text(model.institution, MARGIN, 26, { lineBreak: false });
+    doc.fontSize(8.5).fillColor(colors.muted).text(model.title, MARGIN, 27, { width: CONTENT_WIDTH, align: "right", lineBreak: false });
+    doc.save().moveTo(MARGIN, 49).lineTo(PAGE_WIDTH - MARGIN, 49).strokeColor(colors.line).stroke().restore();
+  }
+  doc.save().moveTo(MARGIN, PAGE_HEIGHT - 39).lineTo(PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 39).strokeColor(colors.line).stroke().restore();
+  doc.fontSize(7.5).fillColor(colors.muted).text(`\u8BB0\u5F55\u7F16\u53F7 ${model.confirmationId}`, MARGIN, PAGE_HEIGHT - 29, { lineBreak: false });
+  doc.text(`\u7B2C ${pageNumber} / ${TOTAL_PAGES} \u9875`, PAGE_WIDTH - MARGIN - 80, PAGE_HEIGHT - 29, { width: 80, align: "right", lineBreak: false });
+}
+function drawCover(doc, model) {
+  doc.save().rect(0, 0, PAGE_WIDTH, 175).fill(colors.navy).restore();
+  doc.save().rect(0, 0, 10, 175).fill(colors.cyan).restore();
+  doc.fontSize(12).fillColor("#9ADFE0").text(model.institution, MARGIN, 35, { lineBreak: false });
+  doc.fontSize(25).fillColor(colors.white).text(model.title, MARGIN, 64, { width: CONTENT_WIDTH, lineBreak: false });
+  doc.fontSize(9).fillColor("#B8C9D7").text("\u57FA\u4E8E\u8FD1\u671F\u529F\u80FD\u72B6\u6001\u3001\u751F\u6D3B\u65B9\u5F0F\u53CA\u8F83\u65E2\u5F80\u53D8\u5316\u5F62\u6210\u7684\u5065\u5EB7\u7BA1\u7406\u53C2\u8003", MARGIN, 105, { width: CONTENT_WIDTH });
+  statusPill(doc, model.followUpLabel, MARGIN, 132, model.safetyNotice ? colors.red : colors.orange, 128);
+  doc.fontSize(8).fillColor("#B8C9D7").text(`\u751F\u6210\u65F6\u95F4 ${model.submittedAt}`, PAGE_WIDTH - MARGIN - 180, 140, { width: 180, align: "right", lineBreak: false });
+  const infoY = 196;
+  const infoGap = 10;
+  const infoWidth = (CONTENT_WIDTH - infoGap * 2) / 3;
+  [
+    ["\u59D3\u540D", model.name],
+    ["\u624B\u673A\u53F7", model.phone],
+    ["\u8BB0\u5F55\u7F16\u53F7", model.confirmationId]
+  ].forEach(([heading, content], index) => {
+    const x = MARGIN + index * (infoWidth + infoGap);
+    roundedPanel(doc, x, infoY, infoWidth, 62, colors.pale);
+    label(doc, heading, x + 14, infoY + 12);
+    value(doc, content, x + 14, infoY + 31, infoWidth - 28, 10.5, colors.ink, 20);
+  });
+  sectionTitle(doc, "1", "\u5F53\u524D\u6700\u5173\u6CE8\u7684\u95EE\u9898", 282, "\u7528\u4E8E\u5B89\u6392\u5065\u5EB7\u6C9F\u901A\u548C\u540E\u7EED\u7BA1\u7406\u4F18\u5148\u7EA7");
+  const concernY = 326;
+  const concernGap = 10;
+  const concernWidth = (CONTENT_WIDTH - concernGap * 2) / 3;
+  const concerns = [...model.concerns, "\u672A\u586B\u5199", "\u672A\u586B\u5199"].slice(0, 3);
+  concerns.forEach((concern, index) => {
+    const x = MARGIN + index * (concernWidth + concernGap);
+    roundedPanel(doc, x, concernY, concernWidth, 58, colors.white);
+    doc.save().circle(x + 22, concernY + 29, 12).fill(index === 0 ? colors.orange : colors.blue).restore();
+    doc.fontSize(9).fillColor(colors.white).text(String(index + 1), x + 13, concernY + 23, { width: 18, align: "center", lineBreak: false });
+    value(doc, concern, x + 42, concernY + 18, concernWidth - 53, 10.5, colors.ink, 30);
+  });
+  const compareY = 400;
+  const compareWidth = (CONTENT_WIDTH - 12) / 2;
+  roundedPanel(doc, MARGIN, compareY, compareWidth, 72, "#F8FBFE");
+  label(doc, "\u6700\u8FD1\u534A\u5E74\u6700\u660E\u663E\u53D8\u5316", MARGIN + 15, compareY + 14);
+  value(doc, model.mainChange, MARGIN + 15, compareY + 35, compareWidth - 30, 12, colors.navy, 24);
+  roundedPanel(doc, MARGIN + compareWidth + 12, compareY, compareWidth, 72, "#F8FBFE");
+  label(doc, "\u672A\u676512\u5468\u9996\u8981\u6539\u5584\u76EE\u6807", MARGIN + compareWidth + 27, compareY + 14);
+  value(doc, model.primaryGoal, MARGIN + compareWidth + 27, compareY + 35, compareWidth - 30, 12, colors.navy, 24);
+  sectionTitle(doc, "2", "\u516B\u7EF4\u72B6\u6001\u6982\u89C8", 500, "\u53EA\u5C55\u793A\u5206\u7C7B\u6570\u91CF\uFF0C\u4E0D\u8BA1\u7B97\u603B\u5206\u3001\u767E\u5206\u6BD4\u6216\u8EAB\u4F53\u5E74\u9F84");
+  const summaryY = 548;
+  const total = Math.max(1, model.statusCounts.evaluate + model.statusCounts.signal + model.statusCounts.stable);
+  const segments = [
+    { label: "\u5EFA\u8BAE\u8BC4\u4F30", count: model.statusCounts.evaluate, color: colors.orange },
+    { label: "\u53D8\u5316\u4FE1\u53F7", count: model.statusCounts.signal, color: colors.blue },
+    { label: "\u57FA\u672C\u7A33\u5B9A", count: model.statusCounts.stable, color: colors.green }
+  ];
+  let segmentX = MARGIN;
+  segments.forEach((segment, index) => {
+    const remaining = PAGE_WIDTH - MARGIN - segmentX;
+    const width = index === segments.length - 1 ? remaining : Math.max(4, CONTENT_WIDTH * (segment.count / total));
+    doc.save().roundedRect(segmentX, summaryY, width, 18, 4).fill(segment.color).restore();
+    segmentX += width;
+  });
+  segments.forEach((segment, index) => {
+    const x = MARGIN + index * (CONTENT_WIDTH / 3);
+    doc.save().circle(x + 5, summaryY + 43, 5).fill(segment.color).restore();
+    doc.fontSize(9).fillColor(colors.muted).text(segment.label, x + 17, summaryY + 36, { lineBreak: false });
+    doc.fontSize(19).fillColor(colors.navy).text(String(segment.count), x + 17, summaryY + 51, { lineBreak: false });
+  });
+  const noticeY = 646;
+  roundedPanel(doc, MARGIN, noticeY, CONTENT_WIDTH, model.safetyNotice ? 82 : 70, model.safetyNotice ? "#FFF5F2" : "#F2FAF8", model.safetyNotice ? "#F4C7BD" : "#C9E9DF");
+  doc.save().circle(MARGIN + 22, noticeY + 25, 9).fill(model.safetyNotice ? colors.red : colors.green).restore();
+  doc.fontSize(9).fillColor(colors.white).text("!", MARGIN + 17, noticeY + 18, { width: 10, align: "center", lineBreak: false });
+  doc.fontSize(10.5).fillColor(model.safetyNotice ? colors.red : colors.green).text(
+    model.safetyNotice ? "\u533B\u5B66\u5B89\u5168\u4FE1\u606F\u63D0\u793A" : "\u62A5\u544A\u4F7F\u7528\u8FB9\u754C",
+    MARGIN + 40,
+    noticeY + 15,
+    { lineBreak: false }
+  );
+  value(
+    doc,
+    model.safetyNotice ?? "\u672C\u62A5\u544A\u7528\u4E8E\u5065\u5EB7\u8BC4\u4F30\u4E0E\u7BA1\u7406\u6C9F\u901A\uFF0C\u4E0D\u4F5C\u4E3A\u75BE\u75C5\u8BCA\u65AD\u6216\u72EC\u7ACB\u68C0\u6D4B\u7ED3\u8BBA\u3002",
+    MARGIN + 40,
+    noticeY + 36,
+    CONTENT_WIDTH - 58,
+    9,
+    colors.ink,
+    34
+  );
+}
+function drawDomains(doc, model) {
+  sectionTitle(doc, "3", "\u516B\u7EF4\u529F\u80FD\u72B6\u6001\u753B\u50CF", 69, "\u72B6\u6001\u6765\u81EA\u95EE\u5377\u4F53\u611F\u7EBF\u7D22\uFF0C\u9700\u7ED3\u5408\u4F53\u68C0\u3001\u5B9E\u9A8C\u5BA4\u548C\u65E2\u5F80\u5065\u5EB7\u8D44\u6599\u7EFC\u5408\u5224\u65AD");
+  const gapX = 12;
+  const cardWidth = (CONTENT_WIDTH - gapX) / 2;
+  const cardHeight = 154;
+  const gapY = 12;
+  const startY = 118;
+  model.domains.slice(0, 8).forEach((domain2, index) => {
+    const column = index % 2;
+    const row = Math.floor(index / 2);
+    const x = MARGIN + column * (cardWidth + gapX);
+    const y = startY + row * (cardHeight + gapY);
+    const accent = levelColor(domain2.level);
+    roundedPanel(doc, x, y, cardWidth, cardHeight, colors.white);
+    doc.save().roundedRect(x, y, 5, cardHeight, 3).fill(accent).restore();
+    value(doc, domain2.title, x + 17, y + 15, cardWidth - 132, 12, colors.navy, 22);
+    statusPill(doc, domain2.levelLabel, x + cardWidth - 110, y + 12, accent, 96);
+    label(doc, "\u4E3B\u8981\u7EBF\u7D22", x + 17, y + 52);
+    value(doc, domain2.reason, x + 17, y + 68, cardWidth - 34, 9, colors.ink, 30);
+    label(doc, "\u5065\u5EB7\u7BA1\u7406\u5EFA\u8BAE", x + 17, y + 101);
+    value(doc, domain2.recommendation, x + 17, y + 117, cardWidth - 34, 8.5, colors.muted, 29);
+  });
+}
+function drawLifestyleAndGoals(doc, model) {
+  sectionTitle(doc, "4", "\u751F\u6D3B\u65B9\u5F0F\u6982\u89C8", 69, "\u7ED3\u6784\u5316\u5448\u73B0\u5F71\u54CD\u7761\u7720\u3001\u4EE3\u8C22\u3001\u6062\u590D\u548C\u529F\u80FD\u50A8\u5907\u7684\u65E5\u5E38\u56E0\u7D20");
+  const gapX = 12;
+  const cardWidth = (CONTENT_WIDTH - gapX) / 2;
+  const cardHeight = 57;
+  const gapY = 10;
+  const startY = 116;
+  model.lifestyle.slice(0, 8).forEach((item, index) => {
+    const column = index % 2;
+    const row = Math.floor(index / 2);
+    const x = MARGIN + column * (cardWidth + gapX);
+    const y = startY + row * (cardHeight + gapY);
+    roundedPanel(doc, x, y, cardWidth, cardHeight, index % 3 === 0 ? "#F2FAF8" : "#F7FAFD");
+    label(doc, item.label, x + 14, y + 10);
+    value(doc, item.value, x + 14, y + 28, cardWidth - 28, 10, colors.ink, 22);
+  });
+  sectionTitle(doc, "5", "\u672A\u676512\u5468\u884C\u52A8\u76EE\u6807", 404, "\u9009\u62E9\u5C11\u91CF\u3001\u53EF\u6267\u884C\u7684\u6539\u53D8\uFF0C\u5E76\u5728\u7B2C4\u30018\u300112\u5468\u89C2\u5BDF\u4F53\u611F\u53D8\u5316");
+  const goalY = 451;
+  const goalGap = 10;
+  const goalWidth = (CONTENT_WIDTH - goalGap * 2) / 3;
+  const goals = [...model.twelveWeekGoals, "\u5C1A\u672A\u9009\u62E9", "\u5C1A\u672A\u9009\u62E9"].slice(0, 3);
+  goals.forEach((goal, index) => {
+    const x = MARGIN + index * (goalWidth + goalGap);
+    roundedPanel(doc, x, goalY, goalWidth, 67, colors.white);
+    doc.save().circle(x + 20, goalY + 21, 10).fill(index === 0 ? colors.orange : colors.cyan).restore();
+    doc.fontSize(8).fillColor(colors.white).text(String(index + 1), x + 12, goalY + 16, { width: 16, align: "center", lineBreak: false });
+    value(doc, goal, x + 14, goalY + 39, goalWidth - 28, 9.5, colors.ink, 23);
+  });
+  roundedPanel(doc, MARGIN, 536, CONTENT_WIDTH, 62, "#F3F8FC");
+  label(doc, "\u9996\u8981\u6539\u5584\u76EE\u6807", MARGIN + 16, 550, colors.blue);
+  value(doc, model.primaryGoal, MARGIN + 130, 546, CONTENT_WIDTH - 146, 13, colors.navy, 28);
+  sectionTitle(doc, "6", "\u5EFA\u8BAE\u7684\u540E\u7EED\u8DEF\u5F84", 624);
+  const steps = [
+    ["01", "\u8865\u5145\u68C0\u6D4B", "\u6839\u636E\u8BC4\u4F30\u7EBF\u7D22\u786E\u5B9A\u4F53\u68C0\u3001\u5B9E\u9A8C\u5BA4\u6216\u4E13\u9879\u68C0\u6D4B\u3002"],
+    ["02", "\u786E\u5B9A\u4F18\u5148\u7EA7", "\u7ED3\u5408\u65E2\u5F80\u8D44\u6599\uFF0C\u786E\u5B9A\u5F53\u524D\u6700\u503C\u5F97\u5148\u7BA1\u7406\u7684\u65B9\u5411\u3002"],
+    ["03", "\u8DDF\u8E2A\u53D8\u5316", "\u5236\u5B9A12\u5468\u65B9\u6848\uFF0C\u5E76\u5728\u7B2C4\u30018\u300112\u5468\u590D\u8BC4\u3002"]
+  ];
+  const stepY = 665;
+  const stepGap = 10;
+  const stepWidth = (CONTENT_WIDTH - stepGap * 2) / 3;
+  steps.forEach(([number, heading, copy2], index) => {
+    const x = MARGIN + index * (stepWidth + stepGap);
+    doc.fontSize(18).fillColor("#B8D4E5").text(number, x, stepY, { lineBreak: false });
+    doc.fontSize(10.5).fillColor(colors.navy).text(heading, x + 37, stepY + 4, { lineBreak: false });
+    value(doc, copy2, x, stepY + 31, stepWidth, 8.5, colors.muted, 42);
+  });
+  doc.fontSize(7.5).fillColor(colors.muted).text(
+    "\u8BF4\u660E\uFF1A\u672C\u95EE\u5377\u4E0D\u662F\u75BE\u75C5\u8BCA\u65AD\u5DE5\u5177\uFF0C\u4E5F\u4E0D\u72EC\u7ACB\u5224\u65AD\u751F\u7269\u5E74\u9F84\u3002\u6B63\u5F0F\u8BC4\u4F30\u9700\u7ED3\u5408\u5F53\u524D\u4F53\u68C0\u4E0E\u5B9E\u9A8C\u5BA4\u68C0\u6D4B\u3001\u65E2\u5F80\u5065\u5EB7\u8D44\u6599\u53CA\u4E13\u9879\u68C0\u6D4B\u3002",
+    MARGIN,
+    756,
+    { width: CONTENT_WIDTH, align: "left", lineGap: 2 }
+  );
+}
+function renderHospitalClientReportPdf(model, fontPath) {
+  return new Promise((resolve, reject) => {
+    const doc = new import_pdfkit.default({
+      size: "A4",
+      margin: 0,
+      autoFirstPage: true,
+      bufferPages: true,
+      compress: true,
+      info: {
+        Title: `${model.institution} ${model.title}`,
+        Author: model.institution,
+        Subject: `\u8BB0\u5F55\u7F16\u53F7 ${model.confirmationId}`,
+        Creator: "\u5EFA\u59CB\u6C11\u65CF\u533B\u9662\u5065\u5EB7\u95EE\u5377\u7CFB\u7EDF"
+      }
+    });
+    const chunks = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("error", reject);
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    try {
+      doc.registerFont("NotoSansSC", fontPath);
+      doc.font("NotoSansSC");
+      drawCover(doc, model);
+      pageChrome(doc, model, 1);
+      doc.addPage({ size: "A4", margin: 0 });
+      doc.font("NotoSansSC");
+      drawDomains(doc, model);
+      pageChrome(doc, model, 2);
+      doc.addPage({ size: "A4", margin: 0 });
+      doc.font("NotoSansSC");
+      drawLifestyleAndGoals(doc, model);
+      pageChrome(doc, model, 3);
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 // functions/submitSurvey/src/wecom.ts
-function safeInline(value) {
-  return value.replace(/[\r\n<>`\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+function safeInline(value2) {
+  return value2.replace(/[\r\n<>`\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
 function displayPhone(phone) {
   if (!phone || !/^1\d{10}$/.test(phone)) return "\u672A\u63D0\u4F9B";
@@ -650,11 +1016,11 @@ var concernMarkers = ["\u2460", "\u2461", "\u2462"];
 function hospitalConcernLabels(record) {
   const selected = record.healthAnswers.topConcerns;
   if (!Array.isArray(selected)) return "\u672A\u586B\u5199";
-  const labels = [...new Set(selected.map(String))].map((value) => hospitalConcernLabelMap.get(value)).filter((value) => Boolean(value)).slice(0, 3).map(safeInline);
-  return labels.length ? labels.map((label, index) => `${concernMarkers[index]} ${label}`).join("\u3000") : "\u672A\u586B\u5199";
+  const labels = [...new Set(selected.map(String))].map((value2) => hospitalConcernLabelMap.get(value2)).filter((value2) => Boolean(value2)).slice(0, 3).map(safeInline);
+  return labels.length ? labels.map((label2, index) => `${concernMarkers[index]} ${label2}`).join("\u3000") : "\u672A\u586B\u5199";
 }
-function answerLabel(labels, value) {
-  return labels.get(String(value ?? "")) ?? "\u672A\u586B\u5199";
+function answerLabel(labels, value2) {
+  return labels.get(String(value2 ?? "")) ?? "\u672A\u586B\u5199";
 }
 function primaryGoalLabel(record) {
   const selected = record.healthAnswers.topConcerns;
@@ -679,8 +1045,8 @@ function statusOverview(record) {
     `<font color="info">\u7A33\u5B9A ${count("stable")}</font>`
   ].join("\uFF5C");
 }
-function shanghaiSubmittedAt(value) {
-  const date = new Date(value);
+function shanghaiSubmittedAt(value2) {
+  const date = new Date(value2);
   if (Number.isNaN(date.getTime())) return "\u65F6\u95F4\u5F85\u6838\u5B9E";
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("zh-CN", {
@@ -712,7 +1078,7 @@ function buildWeComMarkdown(record) {
     `\u{1F9FE} **\u8BB0\u5F55\u7F16\u53F7**\uFF1A${safeInline(record.session.confirmationId)}`
   ].join("\n");
 }
-var twelveWeekGoalLabels = new Map(
+var twelveWeekGoalLabels2 = new Map(
   maleHealthV1.sections.flatMap((section) => section.questions).find((question) => question.id === "twelveWeekGoals")?.options?.map((option) => [option.value, option.label]) ?? []
 );
 function domainTitles(record, level) {
@@ -722,7 +1088,7 @@ function domainTitles(record, level) {
 function selectedGoalLabels(record) {
   const selected = record.healthAnswers.twelveWeekGoals;
   if (!Array.isArray(selected)) return "\u672A\u586B\u5199";
-  const labels = selected.slice(0, 3).map((value) => twelveWeekGoalLabels.get(String(value))).filter((value) => Boolean(value)).map(safeInline);
+  const labels = selected.slice(0, 3).map((value2) => twelveWeekGoalLabels2.get(String(value2))).filter((value2) => Boolean(value2)).map(safeInline);
   return labels.length ? labels.join("\u3001") : "\u672A\u586B\u5199";
 }
 function buildNuomaYuanyiWeComMarkdown(record) {
@@ -767,6 +1133,88 @@ async function sendWeComNotification(webhookUrl, markdown, fetcher = fetch) {
     throw new Error("\u4F01\u4E1A\u5FAE\u4FE1\u901A\u77E5\u5931\u8D25");
   }
 }
+async function uploadWeComFile(webhookUrl, filename, file, fetcher = fetch) {
+  const webhook = validateWebhook(webhookUrl);
+  const uploadUrl = new URL("/cgi-bin/webhook/upload_media", webhook.origin);
+  uploadUrl.searchParams.set("key", webhook.searchParams.get("key"));
+  uploadUrl.searchParams.set("type", "file");
+  try {
+    const form = new FormData();
+    form.append("media", new Blob([new Uint8Array(file)], { type: "application/pdf" }), filename);
+    const response2 = await fetcher(uploadUrl, {
+      method: "POST",
+      body: form,
+      signal: AbortSignal.timeout(5e3)
+    });
+    const result = await response2.json();
+    if (!response2.ok || result.errcode !== 0 || !result.media_id) throw new Error("rejected");
+    return result.media_id;
+  } catch {
+    throw new Error("\u4F01\u4E1A\u5FAE\u4FE1\u6587\u4EF6\u4E0A\u4F20\u5931\u8D25");
+  }
+}
+async function sendWeComFile(webhookUrl, mediaId, fetcher = fetch) {
+  const url = validateWebhook(webhookUrl);
+  try {
+    const response2 = await fetcher(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ msgtype: "file", file: { media_id: mediaId } }),
+      signal: AbortSignal.timeout(5e3)
+    });
+    const result = await response2.json();
+    if (!response2.ok || result.errcode !== 0) throw new Error("rejected");
+  } catch {
+    throw new Error("\u4F01\u4E1A\u5FAE\u4FE1\u6587\u4EF6\u53D1\u9001\u5931\u8D25");
+  }
+}
+
+// functions/submitSurvey/src/report-delivery.ts
+async function deliverHospitalClientReport(record, webhookUrl, dependencies) {
+  if (!webhookUrl) return "not_configured";
+  const buildModel = dependencies.buildModel ?? buildHospitalClientReportModel;
+  const renderPdf = dependencies.renderPdf ?? renderHospitalClientReportPdf;
+  const filename = dependencies.filename ?? hospitalClientReportFilename;
+  const upload = dependencies.upload ?? uploadWeComFile;
+  const send = dependencies.send ?? sendWeComFile;
+  const logError = dependencies.logError ?? console.error;
+  try {
+    const model = buildModel(record);
+    const pdf = await renderPdf(model, dependencies.fontPath);
+    const mediaId = await upload(webhookUrl, filename(model), pdf);
+    await send(webhookUrl, mediaId);
+    return "sent";
+  } catch {
+    logError("hospital WeCom PDF report delivery failed");
+    return "failed";
+  }
+}
+
+// functions/submitSurvey/src/notification-workflow.ts
+async function deliverResolvedWeComNotification(record, notification, dependencies) {
+  if (!notification.webhookUrl) {
+    return [
+      { action: notification.auditAction, status: "not_configured" },
+      ...notification.report ? [{ action: notification.report.auditAction, status: "not_configured" }] : []
+    ];
+  }
+  const sendMarkdown = dependencies.sendMarkdown ?? sendWeComNotification;
+  const deliverReport = dependencies.deliverReport ?? deliverHospitalClientReport;
+  const logError = dependencies.logError ?? console.error;
+  const audits = [];
+  try {
+    await sendMarkdown(notification.webhookUrl, notification.markdown);
+    audits.push({ action: notification.auditAction, status: "sent" });
+  } catch {
+    logError(notification.failureLog);
+    audits.push({ action: notification.auditAction, status: "failed" });
+  }
+  if (notification.report) {
+    const status = await deliverReport(record, notification.webhookUrl, { fontPath: dependencies.fontPath });
+    audits.push({ action: notification.report.auditAction, status });
+  }
+  return audits;
+}
 
 // functions/submitSurvey/src/notification.ts
 function resolveWeComNotification(record, environment) {
@@ -783,14 +1231,18 @@ function resolveWeComNotification(record, environment) {
       webhookUrl: environment.HOSPITAL_WECHAT_WEBHOOK_URL,
       markdown: buildWeComMarkdown(record),
       auditAction: "hospital_wecom_notification",
-      failureLog: "hospital WeCom notification failed"
+      failureLog: "hospital WeCom notification failed",
+      report: {
+        auditAction: "hospital_wecom_report_notification",
+        failureLog: "hospital WeCom PDF report delivery failed"
+      }
     };
   }
   return null;
 }
 
 // functions/submitSurvey/src/index.ts
-var app = (0, import_node_sdk.init)({ env: import_node_sdk.SYMBOL_CURRENT_ENV });
+var app = (0, import_node_sdk.init)();
 var db = app.database();
 var DEFAULT_ALLOWED_ORIGIN = "https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com";
 var persistence = {
@@ -813,25 +1265,20 @@ var persistence = {
     ]);
     const notification = resolveWeComNotification(record, process.env);
     if (notification) {
-      let notificationStatus = "not_configured";
-      if (notification.webhookUrl) {
+      const audits = await deliverResolvedWeComNotification(record, notification, {
+        fontPath: import_node_path.default.join(__dirname, "assets", "NotoSansCJKsc-Regular.otf")
+      });
+      for (const audit of audits) {
         try {
-          await sendWeComNotification(notification.webhookUrl, notification.markdown);
-          notificationStatus = "sent";
+          await db.collection(collections.auditLogs).add({
+            sessionId,
+            action: audit.action,
+            status: audit.status,
+            createdAt: (/* @__PURE__ */ new Date()).toISOString()
+          });
         } catch {
-          notificationStatus = "failed";
-          console.error(notification.failureLog);
+          console.error("WeCom notification audit write failed");
         }
-      }
-      try {
-        await db.collection(collections.auditLogs).add({
-          sessionId,
-          action: notification.auditAction,
-          status: notificationStatus,
-          createdAt: (/* @__PURE__ */ new Date()).toISOString()
-        });
-      } catch {
-        console.error("WeCom notification audit write failed");
       }
     }
   }
