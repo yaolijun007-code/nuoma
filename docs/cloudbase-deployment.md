@@ -35,7 +35,7 @@ npx -y -p @cloudbase/cli tcb fn deploy adminSurvey -e yuecheng-survey-d4fucklsf6
 npx -y -p @cloudbase/cli tcb hosting deploy dist health-survey -e yuecheng-survey-d4fucklsf6b68aaf
 ```
 
-`cloudbaserc.json` 不声明云函数环境变量，避免代码部署时覆盖云端保存的机器人密钥。首次部署或更换环境后，应在控制台单独设置 `ALLOWED_ORIGIN`、`HOSPITAL_WECHAT_WEBHOOK_URL` 和 `NUOMA_YUANYI_WECOM_WEBHOOK_URL`，再通过只显示变量名称、不显示值的方式核验。医院通知仅包含姓名、完整手机号和客户选择的3个主要问题；由于群内展示完整手机号，机器人只能加入经授权的院内工作群。诺玛元一通知仅包含记录编号、安全状态、评估方向、变化信号和12周目标，不包含姓名、手机号、开放文本、逐题答案或具体红旗内容。通知失败会写审计日志，但不会回滚已成功入库的问卷。
+`cloudbaserc.json` 不声明云函数环境变量，避免代码部署时覆盖云端保存的机器人密钥。首次部署或更换环境后，应在控制台单独设置 `ALLOWED_ORIGIN`、`HOSPITAL_WECHAT_WEBHOOK_URL` 和 `NUOMA_YUANYI_WECOM_WEBHOOK_URL`，再通过只显示变量名称、不显示值的方式核验。医院通知使用带图标与颜色标签的单条 Markdown，包含四级跟进状态、姓名、完整手机号、3个主要问题、最明显变化、首要改善目标、八维分类数量、上海时间和记录编号；红旗记录只显示“需医务人员优先核实”和“安全信息待人工核实”，不展示具体答案。由于群内展示完整手机号，机器人只能加入经授权的院内工作群。诺玛元一通知仅包含记录编号、安全状态、评估方向、变化信号和12周目标，不包含姓名、手机号、开放文本、逐题答案或具体红旗内容。通知失败会写审计日志，但不会回滚已成功入库的问卷。
 
 `npm run build` 生成医院版 `dist/`；`npm run build:nuoma-yuanyi` 生成诺玛元一版 `dist-nuoma-yuanyi/`。静态托管分别部署到 `health-survey` 与 `nuoma-yuanyi-survey` 目录。
 

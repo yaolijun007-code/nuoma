@@ -643,18 +643,73 @@ function displayPhone(phone) {
 var hospitalConcernLabelMap = new Map(
   findHospitalQuestion("topConcerns")?.options?.map((option) => [option.value, option.label]) ?? []
 );
+var hospitalMainChangeLabelMap = new Map(
+  findHospitalQuestion("mainChange")?.options?.map((option) => [option.value, option.label]) ?? []
+);
+var concernMarkers = ["\u2460", "\u2461", "\u2462"];
 function hospitalConcernLabels(record) {
   const selected = record.healthAnswers.topConcerns;
   if (!Array.isArray(selected)) return "\u672A\u586B\u5199";
   const labels = [...new Set(selected.map(String))].map((value) => hospitalConcernLabelMap.get(value)).filter((value) => Boolean(value)).slice(0, 3).map(safeInline);
-  return labels.length ? labels.join("\u3001") : "\u672A\u586B\u5199";
+  return labels.length ? labels.map((label, index) => `${concernMarkers[index]} ${label}`).join("\u3000") : "\u672A\u586B\u5199";
+}
+function answerLabel(labels, value) {
+  return labels.get(String(value ?? "")) ?? "\u672A\u586B\u5199";
+}
+function primaryGoalLabel(record) {
+  const selected = record.healthAnswers.topConcerns;
+  const goal = String(record.healthAnswers.singleImprovement ?? "");
+  if (!Array.isArray(selected) || !selected.map(String).includes(goal)) return "\u672A\u586B\u5199";
+  return answerLabel(hospitalConcernLabelMap, goal);
+}
+function followUpStatus(record) {
+  if (record.session.hasRedFlag) return '<font color="warning">\u9700\u533B\u52A1\u4EBA\u5458\u4F18\u5148\u6838\u5B9E</font>';
+  const evaluate = record.assessment.domains.filter(({ level }) => level === "evaluate").length;
+  const signal = record.assessment.domains.filter(({ level }) => level === "signal").length;
+  if (evaluate >= 2) return '<font color="warning">\u5EFA\u8BAE\u91CD\u70B9\u8DDF\u8FDB</font>';
+  if (evaluate + signal > 0) return '<font color="comment">\u5B58\u5728\u53D8\u5316\u4FE1\u53F7</font>';
+  return '<font color="info">\u5E38\u89C4\u5065\u5EB7\u7BA1\u7406</font>';
+}
+function statusOverview(record) {
+  if (record.session.hasRedFlag) return '<font color="warning">\u5B89\u5168\u4FE1\u606F\u5F85\u4EBA\u5DE5\u6838\u5B9E</font>';
+  const count = (level) => record.assessment.domains.filter((domain2) => domain2.level === level).length;
+  return [
+    `<font color="warning">\u8BC4\u4F30 ${count("evaluate")}</font>`,
+    `<font color="comment">\u53D8\u5316 ${count("signal")}</font>`,
+    `<font color="info">\u7A33\u5B9A ${count("stable")}</font>`
+  ].join("\uFF5C");
+}
+function shanghaiSubmittedAt(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "\u65F6\u95F4\u5F85\u6838\u5B9E";
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("zh-CN", {
+      timeZone: "Asia/Shanghai",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23"
+    }).formatToParts(date).map((part) => [part.type, part.value])
+  );
+  return `${parts.month}\u6708${parts.day}\u65E5 ${parts.hour}:${parts.minute}`;
 }
 function buildWeComMarkdown(record) {
   return [
-    "### \u5EFA\u59CB\u6C11\u65CF\u533B\u9662\uFF5C\u65B0\u95EE\u5377",
-    `> \u59D3\u540D\uFF1A${safeInline(record.identity.name)}`,
-    `> \u624B\u673A\u53F7\uFF1A${displayPhone(record.identity.phone)}`,
-    `> \u4E3B\u8981\u95EE\u9898\uFF1A${hospitalConcernLabels(record)}`
+    "### \u{1F3E5} \u5EFA\u59CB\u6C11\u65CF\u533B\u9662\uFF5C\u65B0\u5065\u5EB7\u95EE\u5377",
+    "",
+    `\u{1F6A6} **\u8DDF\u8FDB\u7B49\u7EA7**\uFF1A${followUpStatus(record)}`,
+    "",
+    `\u{1F464} **\u59D3\u540D**\uFF1A${safeInline(record.identity.name)}`,
+    `\u{1F4F1} **\u624B\u673A\u53F7**\uFF1A${displayPhone(record.identity.phone)}`,
+    `\u{1F3AF} **\u4E3B\u8981\u95EE\u9898**\uFF1A${hospitalConcernLabels(record)}`,
+    `\u{1F50E} **\u6700\u660E\u663E\u53D8\u5316**\uFF1A${answerLabel(hospitalMainChangeLabelMap, record.healthAnswers.mainChange)}`,
+    `\u2B50 **\u9996\u8981\u6539\u5584\u76EE\u6807**\uFF1A${primaryGoalLabel(record)}`,
+    "",
+    `\u{1F4CA} **\u72B6\u6001\u6982\u89C8**\uFF1A${statusOverview(record)}`,
+    "",
+    `\u{1F552} **\u63D0\u4EA4\u65F6\u95F4**\uFF1A${shanghaiSubmittedAt(record.session.submittedAt)}`,
+    `\u{1F9FE} **\u8BB0\u5F55\u7F16\u53F7**\uFF1A${safeInline(record.session.confirmationId)}`
   ].join("\n");
 }
 var twelveWeekGoalLabels = new Map(
