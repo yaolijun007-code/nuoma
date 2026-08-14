@@ -2,6 +2,7 @@ import type { PersistedSubmission } from "../../../src/domain/submission";
 import { maleHealthV1 } from "../../../src/domain/questionnaire";
 import { findHospitalQuestion } from "../../../src/hospital/surveyDefinition";
 import NodeFormData from "form-data";
+import { findFemaleQuestion } from "../../../src/female/surveyDefinition";
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
@@ -102,6 +103,48 @@ export function buildWeComMarkdown(record: PersistedSubmission) {
     `⭐ **首要改善目标**：${primaryGoalLabel(record)}`,
     "",
     `📊 **状态概览**：${statusOverview(record)}`,
+    "",
+    `🕒 **提交时间**：${shanghaiSubmittedAt(record.session.submittedAt)}`,
+    `🧾 **记录编号**：${safeInline(record.session.confirmationId)}`,
+  ].join("\n");
+}
+
+const femalePriorityLabelMap = new Map(
+  findFemaleQuestion("f53")?.options?.map((option) => [option.value, option.label]) ?? [],
+);
+const femaleLifecycleLabelMap = new Map(
+  findFemaleQuestion("f5")?.options?.map((option) => [option.value, option.label]) ?? [],
+);
+
+function femalePriorityLabels(record: PersistedSubmission) {
+  const selected = record.healthAnswers.f53;
+  if (!Array.isArray(selected)) return "未填写";
+  const labels = [...new Set(selected.map(String))]
+    .map((value) => femalePriorityLabelMap.get(value))
+    .filter((value): value is string => Boolean(value))
+    .slice(0, 3)
+    .map(safeInline);
+  return labels.length ? labels.map((label, index) => `${concernMarkers[index]} ${label}`).join("　") : "未填写";
+}
+
+function femaleHealthRating(record: PersistedSubmission) {
+  const value = Number(record.healthAnswers.f55);
+  return Number.isInteger(value) && value >= 0 && value <= 10 ? `${value} / 10` : "未填写";
+}
+
+export function buildFemaleWeComMarkdown(record: PersistedSubmission) {
+  return [
+    "### 🌺 建始民族医院｜女性健康问卷",
+    "",
+    `🚦 **跟进等级**：${followUpStatus(record)}`,
+    "",
+    `👤 **姓名**：${safeInline(record.identity.name)}`,
+    `📱 **手机号**：${displayPhone(record.identity.phone)}`,
+    `🎯 **重点关注**：${femalePriorityLabels(record)}`,
+    `🌿 **生命周期**：${answerLabel(femaleLifecycleLabelMap, record.healthAnswers.f5)}`,
+    `✨ **整体健康自评**：${femaleHealthRating(record)}`,
+    "",
+    `📊 **八维概览**：${statusOverview(record)}`,
     "",
     `🕒 **提交时间**：${shanghaiSubmittedAt(record.session.submittedAt)}`,
     `🧾 **记录编号**：${safeInline(record.session.confirmationId)}`,

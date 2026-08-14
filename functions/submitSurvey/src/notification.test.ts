@@ -50,6 +50,25 @@ describe("WeCom notification routing", () => {
     expect(resolved?.markdown).toContain("建始民族医院｜新健康问卷");
   });
 
+  it("routes female records to the same hospital webhook with female audits and report kind", () => {
+    const resolved = resolveWeComNotification({
+      ...baseRecord,
+      session: { ...baseRecord.session, questionnaireVersion: "female-health-v1.0" },
+      identity: { ...baseRecord.identity, phone: "13800138000" },
+      healthAnswers: { f5: "4", f53: ["0", "1", "4"], f55: 8 },
+    }, { HOSPITAL_WECHAT_WEBHOOK_URL: "hospital-webhook" });
+
+    expect(resolved).toMatchObject({
+      webhookUrl: "hospital-webhook",
+      auditAction: "hospital_female_wecom_notification",
+      report: {
+        kind: "female",
+        auditAction: "hospital_female_wecom_report_notification",
+      },
+    });
+    expect(resolved?.markdown).toContain("建始民族医院｜女性健康问卷");
+  });
+
   it("returns a configured route without a URL so missing configuration can be audited", () => {
     expect(resolveWeComNotification(baseRecord, {})).toMatchObject({
       webhookUrl: undefined,
