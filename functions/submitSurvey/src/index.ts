@@ -1,11 +1,11 @@
-import { init, SYMBOL_CURRENT_ENV } from "@cloudbase/node-sdk";
+import { init } from "@cloudbase/node-sdk";
 import path from "node:path";
 import { createSubmissionService, SubmissionError, type PersistedSubmission } from "../../../src/domain/submission";
 import { collections } from "../../../src/domain/collections";
 import { deliverResolvedWeComNotification } from "./notification-workflow";
 import { resolveWeComNotification } from "./notification";
 
-const app = init({ env: SYMBOL_CURRENT_ENV });
+const app = init();
 const db = app.database();
 const DEFAULT_ALLOWED_ORIGIN = "https://yuecheng-survey-d4fucklsf6b68aaf-1388047663.tcloudbaseapp.com";
 

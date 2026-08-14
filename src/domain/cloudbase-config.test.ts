@@ -16,6 +16,30 @@ describe("CloudBase function configuration", () => {
     expect(submitSurvey?.timeout).toBeGreaterThanOrEqual(20);
   });
 
+  it("pins cloud function SDKs to the audited runtime dependency set", () => {
+    const packages = ["submitSurvey", "adminSurvey"].map((name) => JSON.parse(readFileSync(
+      new URL(`../../functions/${name}/package.json`, import.meta.url),
+      "utf8",
+    )));
+    for (const manifest of packages) {
+      expect(manifest.dependencies["@cloudbase/node-sdk"]).toBe("3.18.5");
+      expect(manifest.overrides.axios).toBe("1.19.0");
+      expect(manifest.overrides["lodash.set"]).toBe("npm:set-value@4.1.0");
+      expect(manifest.overrides["lodash.unset"]).toBe("npm:unset-value@2.0.1");
+    }
+  });
+
+  it("initializes CloudBase against the current cloud-function environment", () => {
+    for (const name of ["submitSurvey", "adminSurvey"]) {
+      const source = readFileSync(
+        new URL(`../../functions/${name}/src/index.ts`, import.meta.url),
+        "utf8",
+      );
+      expect(source).toContain("const app = init();");
+      expect(source).not.toContain("SYMBOL_CURRENT_ENV");
+    }
+  });
+
   it("builds static assets inside the isolated health-survey path", () => {
     expect(viteConfig.base).toBe("/health-survey/");
   });

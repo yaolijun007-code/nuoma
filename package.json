@@ -22,7 +22,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@cloudbase/node-sdk": "^3.18.3",
+    "@cloudbase/node-sdk": "3.18.5",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
@@ -38,5 +38,10 @@
     "typescript": "~5.7.2",
     "vite": "^6.0.5",
     "vitest": "^2.1.8"
+  },
+  "overrides": {
+    "axios": "1.19.0",
+    "lodash.set": "npm:set-value@4.1.0",
+    "lodash.unset": "npm:unset-value@2.0.1"
   }
 }
