@@ -197,7 +197,7 @@ export async function uploadWeComFile(
 
   try {
     const form = new FormData();
-    form.append("media", new Blob([new Uint8Array(file)], { type: "application/pdf" }), filename);
+    form.append("media", new Blob([new Uint8Array(file)], { type: "application/octet-stream" }), filename);
     const response = await fetcher(uploadUrl, {
       method: "POST",
       body: form,

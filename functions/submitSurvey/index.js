@@ -1149,7 +1149,7 @@ async function uploadWeComFile(webhookUrl, filename, file, fetcher = fetch) {
   uploadUrl.searchParams.set("type", "file");
   try {
     const form = new FormData();
-    form.append("media", new Blob([new Uint8Array(file)], { type: "application/pdf" }), filename);
+    form.append("media", new Blob([new Uint8Array(file)], { type: "application/octet-stream" }), filename);
     const response2 = await fetcher(uploadUrl, {
       method: "POST",
       body: form,

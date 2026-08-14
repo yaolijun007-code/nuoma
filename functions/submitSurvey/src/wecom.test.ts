@@ -131,7 +131,7 @@ describe("hospital WeCom PDF file delivery", () => {
       const media = (init?.body as FormData).get("media");
       expect(media).toBeInstanceOf(File);
       expect((media as File).name).toBe("建始民族医院_健康评估报告_虚构用户_JS-TEST.pdf");
-      expect((media as File).type).toBe("application/pdf");
+      expect((media as File).type).toBe("application/octet-stream");
       expect(Buffer.from(await (media as File).arrayBuffer())).toEqual(pdf);
       return new Response(JSON.stringify({ errcode: 0, media_id: "MEDIA-ID" }), { status: 200 });
     });
