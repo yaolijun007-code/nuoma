@@ -6,6 +6,13 @@ type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Re
 
 export const WECOM_UPLOAD_TIMEOUT_MS = 15_000;
 
+export class WeComDeliveryError extends Error {
+  constructor(message: string, public readonly deliveryCode: string) {
+    super(message);
+    this.name = "WeComDeliveryError";
+  }
+}
+
 function safeInline(value: string) {
   return value.replace(/[\r\n<>`\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
@@ -197,10 +204,15 @@ export async function uploadWeComFile(
       signal: AbortSignal.timeout(WECOM_UPLOAD_TIMEOUT_MS),
     });
     const result = await response.json() as { errcode?: number; media_id?: string };
-    if (!response.ok || result.errcode !== 0 || !result.media_id) throw new Error("rejected");
+    if (!response.ok) throw new WeComDeliveryError("企业微信文件上传失败", `http_${response.status}`);
+    if (result.errcode !== 0) {
+      throw new WeComDeliveryError("企业微信文件上传失败", `api_${result.errcode ?? "unknown"}`);
+    }
+    if (!result.media_id) throw new WeComDeliveryError("企业微信文件上传失败", "missing_media_id");
     return result.media_id;
-  } catch {
-    throw new Error("企业微信文件上传失败");
+  } catch (error) {
+    if (error instanceof WeComDeliveryError) throw error;
+    throw new WeComDeliveryError("企业微信文件上传失败", "network_or_parse");
   }
 }
 

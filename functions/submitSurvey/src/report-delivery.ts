@@ -1,7 +1,7 @@
 import type { PersistedSubmission } from "../../../src/domain/submission";
 import { buildHospitalClientReportModel, type HospitalClientReportModel } from "./report-model";
 import { hospitalClientReportFilename, renderHospitalClientReportPdf } from "./report-pdf";
-import { sendWeComFile, uploadWeComFile } from "./wecom";
+import { sendWeComFile, uploadWeComFile, WeComDeliveryError } from "./wecom";
 
 export type ReportDeliveryStatus = "sent" | "failed" | "not_configured";
 
@@ -39,8 +39,9 @@ export async function deliverHospitalClientReport(
     phase = "send";
     await send(webhookUrl, mediaId);
     return "sent";
-  } catch {
-    logError(`hospital WeCom PDF report delivery failed (${phase})`);
+  } catch (error) {
+    const code = error instanceof WeComDeliveryError ? `:${error.deliveryCode}` : "";
+    logError(`hospital WeCom PDF report delivery failed (${phase}${code})`);
     return "failed";
   }
 }

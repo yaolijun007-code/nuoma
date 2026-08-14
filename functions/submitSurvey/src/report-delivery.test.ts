@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { PersistedSubmission } from "../../../src/domain/submission";
 import type { HospitalClientReportModel } from "./report-model";
 import { deliverHospitalClientReport } from "./report-delivery";
+import { WeComDeliveryError } from "./wecom";
 
 const record = {
   session: {
@@ -78,5 +79,19 @@ describe("hospital client report delivery", () => {
     expect(logError).toHaveBeenCalledWith("hospital WeCom PDF report delivery failed (render)");
     expect(JSON.stringify(logError.mock.calls)).not.toContain("sensitive-hospital-webhook");
     expect(JSON.stringify(logError.mock.calls)).not.toContain("sensitive upstream response");
+  });
+
+  it("logs only the safe WeCom upload code when media delivery is rejected", async () => {
+    const logError = vi.fn();
+
+    await expect(deliverHospitalClientReport(record, "sensitive-hospital-webhook", {
+      fontPath: "/fonts/noto.otf",
+      renderPdf: vi.fn(async () => Buffer.from("%PDF-test")),
+      upload: vi.fn(async () => { throw new WeComDeliveryError("企业微信文件上传失败", "api_44001"); }),
+      logError,
+    })).resolves.toBe("failed");
+
+    expect(logError).toHaveBeenCalledWith("hospital WeCom PDF report delivery failed (upload:api_44001)");
+    expect(JSON.stringify(logError.mock.calls)).not.toContain("sensitive-hospital-webhook");
   });
 });

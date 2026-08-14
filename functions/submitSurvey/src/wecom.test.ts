@@ -7,6 +7,7 @@ import {
   sendWeComFile,
   sendWeComNotification,
   uploadWeComFile,
+  WeComDeliveryError,
   WECOM_UPLOAD_TIMEOUT_MS,
 } from "./wecom";
 
@@ -163,6 +164,7 @@ describe("hospital WeCom PDF file delivery", () => {
 
     const upload = uploadWeComFile(sensitiveWebhook, "report.pdf", Buffer.from("pdf"), fetcher);
     await expect(upload).rejects.toThrow("企业微信文件上传失败");
+    await expect(upload).rejects.toMatchObject({ deliveryCode: "api_93000" } satisfies Partial<WeComDeliveryError>);
     await expect(upload).rejects.not.toThrow("sensitive-file-secret");
     await expect(upload).rejects.not.toThrow("sensitive upstream detail");
 

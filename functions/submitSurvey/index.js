@@ -1000,6 +1000,14 @@ function renderHospitalClientReportPdf(model, fontPath) {
 
 // functions/submitSurvey/src/wecom.ts
 var WECOM_UPLOAD_TIMEOUT_MS = 15e3;
+var WeComDeliveryError = class extends Error {
+  constructor(message, deliveryCode) {
+    super(message);
+    this.deliveryCode = deliveryCode;
+    this.name = "WeComDeliveryError";
+  }
+  deliveryCode;
+};
 function safeInline(value2) {
   return value2.replace(/[\r\n<>`\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
@@ -1148,10 +1156,15 @@ async function uploadWeComFile(webhookUrl, filename, file, fetcher = fetch) {
       signal: AbortSignal.timeout(WECOM_UPLOAD_TIMEOUT_MS)
     });
     const result = await response2.json();
-    if (!response2.ok || result.errcode !== 0 || !result.media_id) throw new Error("rejected");
+    if (!response2.ok) throw new WeComDeliveryError("\u4F01\u4E1A\u5FAE\u4FE1\u6587\u4EF6\u4E0A\u4F20\u5931\u8D25", `http_${response2.status}`);
+    if (result.errcode !== 0) {
+      throw new WeComDeliveryError("\u4F01\u4E1A\u5FAE\u4FE1\u6587\u4EF6\u4E0A\u4F20\u5931\u8D25", `api_${result.errcode ?? "unknown"}`);
+    }
+    if (!result.media_id) throw new WeComDeliveryError("\u4F01\u4E1A\u5FAE\u4FE1\u6587\u4EF6\u4E0A\u4F20\u5931\u8D25", "missing_media_id");
     return result.media_id;
-  } catch {
-    throw new Error("\u4F01\u4E1A\u5FAE\u4FE1\u6587\u4EF6\u4E0A\u4F20\u5931\u8D25");
+  } catch (error) {
+    if (error instanceof WeComDeliveryError) throw error;
+    throw new WeComDeliveryError("\u4F01\u4E1A\u5FAE\u4FE1\u6587\u4EF6\u4E0A\u4F20\u5931\u8D25", "network_or_parse");
   }
 }
 async function sendWeComFile(webhookUrl, mediaId, fetcher = fetch) {
@@ -1189,8 +1202,9 @@ async function deliverHospitalClientReport(record, webhookUrl, dependencies) {
     phase = "send";
     await send(webhookUrl, mediaId);
     return "sent";
-  } catch {
-    logError(`hospital WeCom PDF report delivery failed (${phase})`);
+  } catch (error) {
+    const code = error instanceof WeComDeliveryError ? `:${error.deliveryCode}` : "";
+    logError(`hospital WeCom PDF report delivery failed (${phase}${code})`);
     return "failed";
   }
 }
