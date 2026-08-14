@@ -174,3 +174,46 @@ export async function sendWeComNotification(webhookUrl: string, markdown: string
     throw new Error("企业微信通知失败");
   }
 }
+
+export async function uploadWeComFile(
+  webhookUrl: string,
+  filename: string,
+  file: Buffer,
+  fetcher: Fetcher = fetch,
+) {
+  const webhook = validateWebhook(webhookUrl);
+  const uploadUrl = new URL("/cgi-bin/webhook/upload_media", webhook.origin);
+  uploadUrl.searchParams.set("key", webhook.searchParams.get("key")!);
+  uploadUrl.searchParams.set("type", "file");
+
+  try {
+    const form = new FormData();
+    form.append("media", new Blob([new Uint8Array(file)], { type: "application/pdf" }), filename);
+    const response = await fetcher(uploadUrl, {
+      method: "POST",
+      body: form,
+      signal: AbortSignal.timeout(5_000),
+    });
+    const result = await response.json() as { errcode?: number; media_id?: string };
+    if (!response.ok || result.errcode !== 0 || !result.media_id) throw new Error("rejected");
+    return result.media_id;
+  } catch {
+    throw new Error("企业微信文件上传失败");
+  }
+}
+
+export async function sendWeComFile(webhookUrl: string, mediaId: string, fetcher: Fetcher = fetch) {
+  const url = validateWebhook(webhookUrl);
+  try {
+    const response = await fetcher(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ msgtype: "file", file: { media_id: mediaId } }),
+      signal: AbortSignal.timeout(5_000),
+    });
+    const result = await response.json() as { errcode?: number };
+    if (!response.ok || result.errcode !== 0) throw new Error("rejected");
+  } catch {
+    throw new Error("企业微信文件发送失败");
+  }
+}

@@ -1,7 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 import type { PersistedSubmission } from "../../../src/domain/submission";
-import { buildNuomaYuanyiWeComMarkdown, buildWeComMarkdown, sendWeComNotification } from "./wecom";
+import {
+  buildNuomaYuanyiWeComMarkdown,
+  buildWeComMarkdown,
+  sendWeComFile,
+  sendWeComNotification,
+  uploadWeComFile,
+} from "./wecom";
 
 const record: PersistedSubmission = {
   session: {
@@ -100,6 +106,65 @@ describe("hospital WeCom notification", () => {
     const promise = sendWeComNotification("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=sensitive-secret", "message", fetcher);
     await expect(promise).rejects.toThrow("企业微信通知失败");
     await expect(promise).rejects.not.toThrow("sensitive-secret");
+  });
+});
+
+describe("hospital WeCom PDF file delivery", () => {
+  const webhook = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test-file-key";
+
+  it("uploads a UTF-8 PDF as multipart media and returns its media id", async () => {
+    const pdf = Buffer.from("%PDF-test-file");
+    const fetcher = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(String(input));
+      expect(url.origin).toBe("https://qyapi.weixin.qq.com");
+      expect(url.pathname).toBe("/cgi-bin/webhook/upload_media");
+      expect(url.searchParams.get("key")).toBe("test-file-key");
+      expect(url.searchParams.get("type")).toBe("file");
+      expect(init?.method).toBe("POST");
+      expect(init?.body).toBeInstanceOf(FormData);
+      const media = (init?.body as FormData).get("media");
+      expect(media).toBeInstanceOf(File);
+      expect((media as File).name).toBe("建始民族医院_健康评估报告_虚构用户_JS-TEST.pdf");
+      expect((media as File).type).toBe("application/pdf");
+      expect(Buffer.from(await (media as File).arrayBuffer())).toEqual(pdf);
+      return new Response(JSON.stringify({ errcode: 0, media_id: "MEDIA-ID" }), { status: 200 });
+    });
+
+    await expect(uploadWeComFile(
+      webhook,
+      "建始民族医院_健康评估报告_虚构用户_JS-TEST.pdf",
+      pdf,
+      fetcher,
+    )).resolves.toBe("MEDIA-ID");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the uploaded PDF as a file message", async () => {
+    const fetcher = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+      expect(JSON.parse(String(init?.body))).toEqual({
+        msgtype: "file",
+        file: { media_id: "MEDIA-ID" },
+      });
+      return new Response(JSON.stringify({ errcode: 0 }), { status: 200 });
+    });
+
+    await expect(sendWeComFile(webhook, "MEDIA-ID", fetcher)).resolves.toBeUndefined();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns generic file errors without exposing the webhook key or response body", async () => {
+    const sensitiveWebhook = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=sensitive-file-secret";
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ errcode: 93000, errmsg: "sensitive upstream detail" }), { status: 200 }));
+
+    const upload = uploadWeComFile(sensitiveWebhook, "report.pdf", Buffer.from("pdf"), fetcher);
+    await expect(upload).rejects.toThrow("企业微信文件上传失败");
+    await expect(upload).rejects.not.toThrow("sensitive-file-secret");
+    await expect(upload).rejects.not.toThrow("sensitive upstream detail");
+
+    const send = sendWeComFile(sensitiveWebhook, "MEDIA-ID", fetcher);
+    await expect(send).rejects.toThrow("企业微信文件发送失败");
+    await expect(send).rejects.not.toThrow("sensitive-file-secret");
+    await expect(send).rejects.not.toThrow("sensitive upstream detail");
   });
 });
 
