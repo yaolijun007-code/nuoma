@@ -46,12 +46,18 @@ export class SubmissionError extends Error {
   }
 }
 
-const allowedAnswerIds = new Set([
+const nuomaAnswerIds = new Set([
   ...maleHealthV1.sections.flatMap((section) => section.questions.map((question) => question.id)),
-  ...hospitalSurvey.pages.filter((page) => page.kind === "question").map((page) => page.id),
-  ...femaleSurvey.pages.filter((page) => page.kind === "question").map((page) => page.id),
   "date",
 ]);
+const hospitalAnswerIds = new Set([
+  ...hospitalSurvey.pages.filter((page) => page.kind === "question").map((page) => page.id),
+  "date",
+]);
+const femaleAnswerIds = new Set(
+  femaleSurvey.pages.filter((page) => page.kind === "question").map((page) => page.id),
+);
+const allKnownAnswerIds = new Set([...nuomaAnswerIds, ...hospitalAnswerIds, ...femaleAnswerIds]);
 export const supportedQuestionnaireVersions = new Set([
   maleHealthV1.version,
   "nuoma-yuanyi-male-health-v1.0",
@@ -59,6 +65,11 @@ export const supportedQuestionnaireVersions = new Set([
 ]);
 const HOSPITAL_VERSION = hospitalSurvey.version;
 const NUOMA_VERSION = "nuoma-yuanyi-male-health-v1.0";
+const answerIdsByVersion = new Map<string, Set<string>>([
+  [HOSPITAL_VERSION, hospitalAnswerIds],
+  [NUOMA_VERSION, nuomaAnswerIds],
+  [femaleSurvey.version, femaleAnswerIds],
+]);
 
 function parsePayload(input: unknown): SubmissionPayload {
   if (!input || typeof input !== "object") throw new SubmissionError("INVALID_PAYLOAD", "提交内容格式不正确");
@@ -76,8 +87,13 @@ function parsePayload(input: unknown): SubmissionPayload {
   if (JSON.stringify(payload.answers).length > 50_000) {
     throw new SubmissionError("INVALID_PAYLOAD", "提交内容超出限制");
   }
+  const versionAnswerIds = answerIdsByVersion.get(payload.questionnaireVersion);
+  if (!versionAnswerIds) throw new SubmissionError("INVALID_PAYLOAD", "问卷版本不受支持");
   for (const [key, value] of Object.entries(payload.answers)) {
-    if (!allowedAnswerIds.has(key)) continue;
+    if (allKnownAnswerIds.has(key) && !versionAnswerIds.has(key)) {
+      throw new SubmissionError("INVALID_PAYLOAD", "问卷字段与版本不匹配");
+    }
+    if (!versionAnswerIds.has(key)) continue;
     if (typeof value === "string" && value.length > 2_000) throw new SubmissionError("INVALID_PAYLOAD", "文本内容超出限制");
     if (Array.isArray(value) && (value.length > 20 || value.some((item) => typeof item !== "string" || item.length > 80))) {
       throw new SubmissionError("INVALID_PAYLOAD", "选项内容格式不正确");
@@ -135,7 +151,7 @@ export function createSubmissionService(persistence: SubmissionPersistence) {
         }
         case NUOMA_VERSION: {
           const sanitized = Object.fromEntries(
-            Object.entries(payload.answers).filter(([id]) => allowedAnswerIds.has(id)),
+            Object.entries(payload.answers).filter(([id]) => nuomaAnswerIds.has(id)),
           ) as AnswerMap;
           identity = {
             name: String(payload.answers.name).trim().slice(0, 80),

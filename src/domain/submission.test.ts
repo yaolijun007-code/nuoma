@@ -96,6 +96,16 @@ describe("createSubmissionService", () => {
       .rejects.toMatchObject({ code: "INVALID_PAYLOAD" });
   });
 
+  it("rejects cross-version identity fields instead of storing them as Nuoma health answers", async () => {
+    const save = vi.fn();
+    const service = createSubmissionService({ find: vi.fn().mockResolvedValue(null), save });
+    const answers = { ...validAnswers(), f1: "注入姓名", f2: "13800000000", phone: "13900000000" };
+
+    await expect(service.submit(payload({ questionnaireVersion: "nuoma-yuanyi-male-health-v1.0", answers })))
+      .rejects.toMatchObject({ code: "INVALID_PAYLOAD" });
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it("routes the female questionnaire through female normalization and assessment", async () => {
     const save = vi.fn().mockResolvedValue(undefined);
     const service = createSubmissionService({ find: vi.fn().mockResolvedValue(null), save });

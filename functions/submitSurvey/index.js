@@ -843,12 +843,18 @@ var SubmissionError = class extends Error {
   }
   code;
 };
-var allowedAnswerIds = /* @__PURE__ */ new Set([
+var nuomaAnswerIds = /* @__PURE__ */ new Set([
   ...maleHealthV1.sections.flatMap((section) => section.questions.map((question2) => question2.id)),
-  ...hospitalSurvey.pages.filter((page2) => page2.kind === "question").map((page2) => page2.id),
-  ...femaleSurvey.pages.filter((page2) => page2.kind === "question").map((page2) => page2.id),
   "date"
 ]);
+var hospitalAnswerIds = /* @__PURE__ */ new Set([
+  ...hospitalSurvey.pages.filter((page2) => page2.kind === "question").map((page2) => page2.id),
+  "date"
+]);
+var femaleAnswerIds = new Set(
+  femaleSurvey.pages.filter((page2) => page2.kind === "question").map((page2) => page2.id)
+);
+var allKnownAnswerIds = /* @__PURE__ */ new Set([...nuomaAnswerIds, ...hospitalAnswerIds, ...femaleAnswerIds]);
 var supportedQuestionnaireVersions = /* @__PURE__ */ new Set([
   maleHealthV1.version,
   "nuoma-yuanyi-male-health-v1.0",
@@ -856,6 +862,11 @@ var supportedQuestionnaireVersions = /* @__PURE__ */ new Set([
 ]);
 var HOSPITAL_VERSION = hospitalSurvey.version;
 var NUOMA_VERSION = "nuoma-yuanyi-male-health-v1.0";
+var answerIdsByVersion = /* @__PURE__ */ new Map([
+  [HOSPITAL_VERSION, hospitalAnswerIds],
+  [NUOMA_VERSION, nuomaAnswerIds],
+  [femaleSurvey.version, femaleAnswerIds]
+]);
 function parsePayload(input) {
   if (!input || typeof input !== "object") throw new SubmissionError("INVALID_PAYLOAD", "\u63D0\u4EA4\u5185\u5BB9\u683C\u5F0F\u4E0D\u6B63\u786E");
   const payload = input;
@@ -872,8 +883,13 @@ function parsePayload(input) {
   if (JSON.stringify(payload.answers).length > 5e4) {
     throw new SubmissionError("INVALID_PAYLOAD", "\u63D0\u4EA4\u5185\u5BB9\u8D85\u51FA\u9650\u5236");
   }
+  const versionAnswerIds = answerIdsByVersion.get(payload.questionnaireVersion);
+  if (!versionAnswerIds) throw new SubmissionError("INVALID_PAYLOAD", "\u95EE\u5377\u7248\u672C\u4E0D\u53D7\u652F\u6301");
   for (const [key, value3] of Object.entries(payload.answers)) {
-    if (!allowedAnswerIds.has(key)) continue;
+    if (allKnownAnswerIds.has(key) && !versionAnswerIds.has(key)) {
+      throw new SubmissionError("INVALID_PAYLOAD", "\u95EE\u5377\u5B57\u6BB5\u4E0E\u7248\u672C\u4E0D\u5339\u914D");
+    }
+    if (!versionAnswerIds.has(key)) continue;
     if (typeof value3 === "string" && value3.length > 2e3) throw new SubmissionError("INVALID_PAYLOAD", "\u6587\u672C\u5185\u5BB9\u8D85\u51FA\u9650\u5236");
     if (Array.isArray(value3) && (value3.length > 20 || value3.some((item) => typeof item !== "string" || item.length > 80))) {
       throw new SubmissionError("INVALID_PAYLOAD", "\u9009\u9879\u5185\u5BB9\u683C\u5F0F\u4E0D\u6B63\u786E");
@@ -928,7 +944,7 @@ function createSubmissionService(persistence2) {
         }
         case NUOMA_VERSION: {
           const sanitized = Object.fromEntries(
-            Object.entries(payload.answers).filter(([id2]) => allowedAnswerIds.has(id2))
+            Object.entries(payload.answers).filter(([id2]) => nuomaAnswerIds.has(id2))
           );
           identity = {
             name: String(payload.answers.name).trim().slice(0, 80),
