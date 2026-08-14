@@ -1191,7 +1191,7 @@ async function deliverHospitalClientReport(record, webhookUrl, dependencies) {
   const filename = dependencies.filename ?? hospitalClientReportFilename;
   const upload = dependencies.upload ?? uploadWeComFile;
   const send = dependencies.send ?? sendWeComFile;
-  const logError = dependencies.logError ?? console.error;
+  const logError = dependencies.logError ?? console.log;
   let phase = "model";
   try {
     const model = buildModel(record);

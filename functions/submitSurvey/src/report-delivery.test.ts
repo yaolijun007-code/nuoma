@@ -94,4 +94,17 @@ describe("hospital client report delivery", () => {
     expect(logError).toHaveBeenCalledWith("hospital WeCom PDF report delivery failed (upload:api_44001)");
     expect(JSON.stringify(logError.mock.calls)).not.toContain("sensitive-hospital-webhook");
   });
+
+  it("writes the safe phase code to the standard cloud-function log stream", async () => {
+    const standardLog = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    await expect(deliverHospitalClientReport(record, "sensitive-hospital-webhook", {
+      fontPath: "/fonts/noto.otf",
+      renderPdf: vi.fn(async () => Buffer.from("%PDF-test")),
+      upload: vi.fn(async () => { throw new WeComDeliveryError("企业微信文件上传失败", "api_44001"); }),
+    })).resolves.toBe("failed");
+
+    expect(standardLog).toHaveBeenCalledWith("hospital WeCom PDF report delivery failed (upload:api_44001)");
+    standardLog.mockRestore();
+  });
 });
