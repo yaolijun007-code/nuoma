@@ -1,6 +1,7 @@
 import type { PersistedSubmission } from "../../../src/domain/submission";
 import { maleHealthV1 } from "../../../src/domain/questionnaire";
 import { findHospitalQuestion } from "../../../src/hospital/surveyDefinition";
+import NodeFormData from "form-data";
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
@@ -196,11 +197,21 @@ export async function uploadWeComFile(
   uploadUrl.searchParams.set("type", "file");
 
   try {
-    const form = new FormData();
-    form.append("media", new Blob([new Uint8Array(file)], { type: "application/octet-stream" }), filename);
+    const form = new NodeFormData();
+    form.append("media", file, {
+      filename,
+      contentType: "application/octet-stream",
+      knownLength: file.length,
+    });
+    const multipartBody = form.getBuffer();
+    const headers = {
+      ...form.getHeaders(),
+      "content-length": String(multipartBody.length),
+    };
     const response = await fetcher(uploadUrl, {
       method: "POST",
-      body: form,
+      headers,
+      body: new Uint8Array(multipartBody),
       signal: AbortSignal.timeout(WECOM_UPLOAD_TIMEOUT_MS),
     });
     const result = await response.json() as { errcode?: number; media_id?: string };

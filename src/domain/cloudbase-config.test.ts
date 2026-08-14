@@ -23,6 +23,9 @@ describe("CloudBase function configuration", () => {
     )));
     for (const manifest of packages) {
       expect(manifest.dependencies["@cloudbase/node-sdk"]).toBe("3.18.5");
+      if (manifest.name === "submit-survey-function") {
+        expect(manifest.dependencies["form-data"]).toBe("4.0.6");
+      }
       expect(manifest.overrides.axios).toBe("1.19.0");
       expect(manifest.overrides["lodash.set"]).toBe("npm:set-value@4.1.0");
       expect(manifest.overrides["lodash.unset"]).toBe("npm:unset-value@2.0.1");

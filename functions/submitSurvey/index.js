@@ -999,6 +999,7 @@ function renderHospitalClientReportPdf(model, fontPath) {
 }
 
 // functions/submitSurvey/src/wecom.ts
+var import_form_data = __toESM(require("form-data"));
 var WECOM_UPLOAD_TIMEOUT_MS = 15e3;
 var WeComDeliveryError = class extends Error {
   constructor(message, deliveryCode) {
@@ -1148,11 +1149,21 @@ async function uploadWeComFile(webhookUrl, filename, file, fetcher = fetch) {
   uploadUrl.searchParams.set("key", webhook.searchParams.get("key"));
   uploadUrl.searchParams.set("type", "file");
   try {
-    const form = new FormData();
-    form.append("media", new Blob([new Uint8Array(file)], { type: "application/octet-stream" }), filename);
+    const form = new import_form_data.default();
+    form.append("media", file, {
+      filename,
+      contentType: "application/octet-stream",
+      knownLength: file.length
+    });
+    const multipartBody = form.getBuffer();
+    const headers = {
+      ...form.getHeaders(),
+      "content-length": String(multipartBody.length)
+    };
     const response2 = await fetcher(uploadUrl, {
       method: "POST",
-      body: form,
+      headers,
+      body: new Uint8Array(multipartBody),
       signal: AbortSignal.timeout(WECOM_UPLOAD_TIMEOUT_MS)
     });
     const result = await response2.json();

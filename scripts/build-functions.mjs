@@ -8,7 +8,7 @@ for (const name of ["submitSurvey", "adminSurvey"]) {
     platform: "node",
     target: "node20",
     format: "cjs",
-    external: ["@cloudbase/node-sdk", "pdfkit"],
+    external: ["@cloudbase/node-sdk", "form-data", "pdfkit"],
     sourcemap: false,
     minify: false,
   });
