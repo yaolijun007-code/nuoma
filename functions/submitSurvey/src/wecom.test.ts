@@ -9,38 +9,82 @@ const record: PersistedSubmission = {
     confirmationId: "JS-TEST-0001",
     questionnaireVersion: "male-health-v1.0",
     submittedAt: "2026-08-13T03:00:00.000Z",
-    hasRedFlag: true,
+    hasRedFlag: false,
   },
   identity: { name: "虚构\n用户", age: null, phone: "13800138000", phoneLast4: "8000" },
-  healthAnswers: { q55: "1", q1: "3", topConcerns: ["0", "1", "4"] },
-  assessment: { domains: [], hasRedFlag: true, redFlags: ["测试风险"] },
+  healthAnswers: { q55: "0", q1: "3", topConcerns: ["0", "1", "4"], mainChange: "1", singleImprovement: "1" },
+  assessment: {
+    domains: [
+      { id: "energy", title: "精力与恢复", level: "evaluate", reasons: [], recommendation: "" },
+      { id: "sleep", title: "睡眠与日间状态", level: "evaluate", reasons: [], recommendation: "" },
+      { id: "mind", title: "压力与认知状态", level: "signal", reasons: [], recommendation: "" },
+      ...Array.from({ length: 5 }, (_, index) => ({ id: `stable-${index}`, title: `稳定${index}`, level: "stable" as const, reasons: [], recommendation: "" })),
+    ],
+    hasRedFlag: false,
+    redFlags: [],
+  },
 };
 
 describe("hospital WeCom notification", () => {
-  it("contains exactly the name, full mobile number, and selected primary concerns", () => {
+  it("renders the complete visual follow-up message", () => {
     const markdown = buildWeComMarkdown(record);
     expect(markdown).toBe([
-      "### 建始民族医院｜新问卷",
-      "> 姓名：虚构 用户",
-      "> 手机号：13800138000",
-      "> 主要问题：精力不足、睡眠、压力与情绪",
+      "### 🏥 建始民族医院｜新健康问卷",
+      "",
+      "🚦 **跟进等级**：<font color=\"warning\">建议重点跟进</font>",
+      "",
+      "👤 **姓名**：虚构 用户",
+      "📱 **手机号**：13800138000",
+      "🎯 **主要问题**：① 精力不足　② 睡眠　③ 压力与情绪",
+      "🔎 **最明显变化**：睡眠变差",
+      "⭐ **首要改善目标**：睡眠",
+      "",
+      "📊 **状态概览**：<font color=\"warning\">评估 2</font>｜<font color=\"comment\">变化 1</font>｜<font color=\"info\">稳定 5</font>",
+      "",
+      "🕒 **提交时间**：08月13日 11:00",
+      "🧾 **记录编号**：JS-TEST-0001",
     ].join("\n"));
-    expect(markdown).not.toContain("测试风险");
     expect(markdown).not.toContain("q55");
-    expect(markdown).not.toContain("记录编号");
-    expect(markdown).not.toContain("提交时间");
-    expect(markdown).not.toContain("提交状态");
   });
 
-  it("de-duplicates concerns and safely ignores unknown values", () => {
+  it("renders red-flag, signal, and stable follow-up levels without raw safety answers", () => {
+    const redFlag = buildWeComMarkdown({
+      ...record,
+      session: { ...record.session, hasRedFlag: true },
+      healthAnswers: { ...record.healthAnswers, q55: "1" },
+      assessment: { ...record.assessment, hasRedFlag: true, redFlags: ["测试风险"] },
+    });
+    expect(redFlag).toContain('<font color="warning">需医务人员优先核实</font>');
+    expect(redFlag).toContain('<font color="warning">安全信息待人工核实</font>');
+    expect(redFlag).not.toContain("测试风险");
+    expect(redFlag).not.toContain("q55");
+
+    const signal = buildWeComMarkdown({
+      ...record,
+      assessment: { ...record.assessment, domains: record.assessment.domains.map((domain, index) => ({ ...domain, level: index === 0 ? "signal" as const : "stable" as const })) },
+    });
+    expect(signal).toContain('<font color="comment">存在变化信号</font>');
+
+    const stable = buildWeComMarkdown({
+      ...record,
+      assessment: { ...record.assessment, domains: record.assessment.domains.map((domain) => ({ ...domain, level: "stable" as const })) },
+    });
+    expect(stable).toContain('<font color="info">常规健康管理</font>');
+  });
+
+  it("de-duplicates concerns and safely degrades unknown or invalid values", () => {
     const markdown = buildWeComMarkdown({
       ...record,
+      session: { ...record.session, submittedAt: "invalid" },
       identity: { ...record.identity, phone: "invalid" },
-      healthAnswers: { ...record.healthAnswers, topConcerns: ["0", "unknown", "0"] },
+      healthAnswers: { ...record.healthAnswers, topConcerns: ["0", "unknown", "0"], mainChange: "unknown", singleImprovement: "unknown" },
     });
 
-    expect(markdown).toContain("> 手机号：未提供");
-    expect(markdown).toContain("> 主要问题：精力不足");
+    expect(markdown).toContain("📱 **手机号**：未提供");
+    expect(markdown).toContain("🎯 **主要问题**：① 精力不足");
+    expect(markdown).toContain("🔎 **最明显变化**：未填写");
+    expect(markdown).toContain("⭐ **首要改善目标**：未填写");
+    expect(markdown).toContain("🕒 **提交时间**：时间待核实");
     expect(markdown).not.toContain("unknown");
   });
 
@@ -106,7 +150,8 @@ describe("Nuoma Yuanyi WeCom summary", () => {
   it("shows a clinical follow-up status without listing the red-flag answers", () => {
     const markdown = buildNuomaYuanyiWeComMarkdown({
       ...record,
-      session: { ...record.session, questionnaireVersion: "nuoma-yuanyi-male-health-v1.0" },
+      session: { ...record.session, questionnaireVersion: "nuoma-yuanyi-male-health-v1.0", hasRedFlag: true },
+      assessment: { ...record.assessment, hasRedFlag: true, redFlags: ["测试风险"] },
     });
 
     expect(markdown).toContain("存在医学安全红旗，需优先人工核实");

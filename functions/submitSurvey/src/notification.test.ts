@@ -42,7 +42,7 @@ describe("WeCom notification routing", () => {
       webhookUrl: "hospital-webhook",
       auditAction: "hospital_wecom_notification",
     });
-    expect(resolved?.markdown).toContain("建始民族医院｜新问卷");
+    expect(resolved?.markdown).toContain("建始民族医院｜新健康问卷");
   });
 
   it("returns a configured route without a URL so missing configuration can be audited", () => {

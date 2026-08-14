@@ -16,6 +16,10 @@ function displayPhone(phone?: string) {
 const hospitalConcernLabelMap = new Map(
   findHospitalQuestion("topConcerns")?.options?.map((option) => [option.value, option.label]) ?? [],
 );
+const hospitalMainChangeLabelMap = new Map(
+  findHospitalQuestion("mainChange")?.options?.map((option) => [option.value, option.label]) ?? [],
+);
+const concernMarkers = ["①", "②", "③"];
 
 function hospitalConcernLabels(record: PersistedSubmission) {
   const selected = record.healthAnswers.topConcerns;
@@ -25,15 +29,72 @@ function hospitalConcernLabels(record: PersistedSubmission) {
     .filter((value): value is string => Boolean(value))
     .slice(0, 3)
     .map(safeInline);
-  return labels.length ? labels.join("、") : "未填写";
+  return labels.length ? labels.map((label, index) => `${concernMarkers[index]} ${label}`).join("　") : "未填写";
+}
+
+function answerLabel(labels: Map<string, string>, value: unknown) {
+  return labels.get(String(value ?? "")) ?? "未填写";
+}
+
+function primaryGoalLabel(record: PersistedSubmission) {
+  const selected = record.healthAnswers.topConcerns;
+  const goal = String(record.healthAnswers.singleImprovement ?? "");
+  if (!Array.isArray(selected) || !selected.map(String).includes(goal)) return "未填写";
+  return answerLabel(hospitalConcernLabelMap, goal);
+}
+
+function followUpStatus(record: PersistedSubmission) {
+  if (record.session.hasRedFlag) return '<font color="warning">需医务人员优先核实</font>';
+  const evaluate = record.assessment.domains.filter(({ level }) => level === "evaluate").length;
+  const signal = record.assessment.domains.filter(({ level }) => level === "signal").length;
+  if (evaluate >= 2) return '<font color="warning">建议重点跟进</font>';
+  if (evaluate + signal > 0) return '<font color="comment">存在变化信号</font>';
+  return '<font color="info">常规健康管理</font>';
+}
+
+function statusOverview(record: PersistedSubmission) {
+  if (record.session.hasRedFlag) return '<font color="warning">安全信息待人工核实</font>';
+  const count = (level: "evaluate" | "signal" | "stable") =>
+    record.assessment.domains.filter((domain) => domain.level === level).length;
+  return [
+    `<font color="warning">评估 ${count("evaluate")}</font>`,
+    `<font color="comment">变化 ${count("signal")}</font>`,
+    `<font color="info">稳定 ${count("stable")}</font>`,
+  ].join("｜");
+}
+
+function shanghaiSubmittedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "时间待核实";
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("zh-CN", {
+      timeZone: "Asia/Shanghai",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date).map((part) => [part.type, part.value]),
+  );
+  return `${parts.month}月${parts.day}日 ${parts.hour}:${parts.minute}`;
 }
 
 export function buildWeComMarkdown(record: PersistedSubmission) {
   return [
-    "### 建始民族医院｜新问卷",
-    `> 姓名：${safeInline(record.identity.name)}`,
-    `> 手机号：${displayPhone(record.identity.phone)}`,
-    `> 主要问题：${hospitalConcernLabels(record)}`,
+    "### 🏥 建始民族医院｜新健康问卷",
+    "",
+    `🚦 **跟进等级**：${followUpStatus(record)}`,
+    "",
+    `👤 **姓名**：${safeInline(record.identity.name)}`,
+    `📱 **手机号**：${displayPhone(record.identity.phone)}`,
+    `🎯 **主要问题**：${hospitalConcernLabels(record)}`,
+    `🔎 **最明显变化**：${answerLabel(hospitalMainChangeLabelMap, record.healthAnswers.mainChange)}`,
+    `⭐ **首要改善目标**：${primaryGoalLabel(record)}`,
+    "",
+    `📊 **状态概览**：${statusOverview(record)}`,
+    "",
+    `🕒 **提交时间**：${shanghaiSubmittedAt(record.session.submittedAt)}`,
+    `🧾 **记录编号**：${safeInline(record.session.confirmationId)}`,
   ].join("\n");
 }
 
