@@ -30,6 +30,8 @@ describe("female survey validation", () => {
     expect(validateFemaleQuestion(findFemaleQuestion("f2")!, { f2: "123" })).toContain("11位");
     expect(validateFemaleQuestion(findFemaleQuestion("f3")!, { f3: "2026-02-30" })).toContain("日期");
     expect(validateFemaleQuestion(findFemaleQuestion("f55")!, { f55: 11 })).toContain("0—10");
+    expect(validateFemaleQuestion(findFemaleQuestion("f5")!, { f5: "99" })).toContain("有效");
+    expect(validateFemaleQuestion(findFemaleQuestion("f11")!, { f11: ["99"] })).toContain("有效");
   });
 
   it("permits the private question to be skipped", () => {

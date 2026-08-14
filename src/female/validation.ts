@@ -17,6 +17,7 @@ function isValidDate(value: unknown) {
 
 export function validateFemaleQuestion(question: FemaleQuestion, answers: AnswerMap): string | undefined {
   const value = answers[question.id];
+  if (question.allowSkip && value === "__skip__") return undefined;
   if (isEmpty(value)) {
     if (!question.required || question.allowSkip) return undefined;
     if (question.type === "multi") return `请至少选择${question.minSelections ?? 1}项`;
@@ -29,8 +30,11 @@ export function validateFemaleQuestion(question: FemaleQuestion, answers: Answer
     const score = Number(value);
     if (!Number.isInteger(score) || score < 0 || score > 10) return "请选择0—10之间的整数";
   }
+  const optionValues = new Set(question.options?.map((option) => option.value) ?? []);
+  if (question.type === "single" && !optionValues.has(String(value))) return "请选择有效选项";
   if (question.type === "multi") {
     if (!Array.isArray(value)) return "请选择至少一项";
+    if (value.some((item) => !optionValues.has(item))) return "请选择有效选项";
     if (question.minSelections && value.length < question.minSelections) return `请至少选择${question.minSelections}项`;
     if (question.maxSelections && value.length > question.maxSelections) return `最多选择${question.maxSelections}项`;
     const exclusive = question.mutuallyExclusiveValues ?? [];
