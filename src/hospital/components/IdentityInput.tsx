@@ -12,8 +12,9 @@ export function IdentityInput({ question, value, error, onChange }: {
       <label className="sr-only" htmlFor={question.id}>{question.prompt}</label>
       <input
         id={question.id}
-        type={question.type === "phone" ? "tel" : "text"}
+        type={question.type === "phone" ? "tel" : question.type === "date" ? "date" : "text"}
         inputMode={question.type === "phone" ? "numeric" : undefined}
+        readOnly={question.type === "date"}
         autoComplete={question.autocomplete}
         value={String(value ?? "")}
         maxLength={question.type === "phone" ? 11 : 80}

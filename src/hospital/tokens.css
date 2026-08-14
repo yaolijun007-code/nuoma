@@ -30,4 +30,42 @@
     --clinical-space-10: 40px;
     --clinical-font: "SF Pro Text", "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
   }
+
+  :root[data-survey-brand="hospital-female"] {
+    --clinical-bg: #fffdf9;
+    --clinical-bg-soft: #f8f3f7;
+    --clinical-surface: #ffffff;
+    --clinical-text: #2f2034;
+    --clinical-text-soft: #756477;
+    --clinical-text-faint: #9d8d9d;
+    --clinical-teal: #188f83;
+    --clinical-teal-dark: #157367;
+    --clinical-teal-soft: #e6f5f1;
+    --clinical-teal-pale: #f2faf7;
+    --clinical-line: #eadfe8;
+    --clinical-line-strong: #d8c6d5;
+    --clinical-orange: #cf665f;
+    --clinical-orange-soft: #fff0ed;
+    --clinical-danger: #b83f57;
+    --clinical-danger-soft: #fff0f3;
+    --clinical-shadow: 0 24px 70px rgb(70 31 74 / 14%);
+    --clinical-radius-sm: 14px;
+    --clinical-radius-md: 18px;
+    --clinical-radius-lg: 30px;
+    --clinical-space-1: 4px;
+    --clinical-space-2: 8px;
+    --clinical-space-3: 12px;
+    --clinical-space-4: 16px;
+    --clinical-space-5: 20px;
+    --clinical-space-6: 24px;
+    --clinical-space-8: 32px;
+    --clinical-space-10: 40px;
+    --clinical-font: "Avenir Next", "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+    --female-plum: #61215f;
+    --female-plum-deep: #3f173f;
+    --female-iris: #7956c5;
+    --female-coral: #df6a70;
+    --female-gold: #cda45e;
+    --female-ivory: #fffaf2;
+  }
 }

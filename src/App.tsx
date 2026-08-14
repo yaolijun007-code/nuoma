@@ -10,6 +10,7 @@ import { validateQuestions, validateStep, type ValidationErrors } from "./domain
 import { submitSurvey } from "./services/submission";
 import { activeBrand, type SurveyBrand } from "./brand";
 import { HospitalSurveyApp } from "./hospital/HospitalSurveyApp";
+import { FemaleSurveyApp } from "./female/FemaleSurveyApp";
 import "./styles.css";
 
 type Phase = "welcome" | "survey" | "result";
@@ -190,5 +191,7 @@ export function LegacySurveyApp({ brand }: { brand: SurveyBrand }) {
 }
 
 export default function App({ brand = activeBrand }: { brand?: SurveyBrand }) {
-  return brand.id === "hospital" ? <HospitalSurveyApp brand={brand} /> : <LegacySurveyApp brand={brand} />;
+  if (brand.id === "hospital") return <HospitalSurveyApp brand={brand} />;
+  if (brand.id === "hospital-female") return <FemaleSurveyApp brand={brand} />;
+  return <LegacySurveyApp brand={brand} />;
 }

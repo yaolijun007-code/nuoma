@@ -8,9 +8,10 @@ interface ChoiceGroupProps {
   value: AnswerValue | undefined;
   onChange(value: AnswerValue): void;
   onAutoAdvance?(): void;
+  updateMultiChoice?(question: Question, selected: string[], optionValue: string): string[];
 }
 
-export function ChoiceGroup({ question, value, onChange, onAutoAdvance }: ChoiceGroupProps) {
+export function ChoiceGroup({ question, value, onChange, onAutoAdvance, updateMultiChoice = updateExclusiveSelection }: ChoiceGroupProps) {
   const timer = useRef<number | undefined>(undefined);
   const selected = Array.isArray(value) ? value : [];
 
@@ -41,7 +42,7 @@ export function ChoiceGroup({ question, value, onChange, onAutoAdvance }: Choice
               disabled={disabled}
               onChange={() => {
                 if (question.type === "single") chooseSingle(option.value);
-                else onChange(updateExclusiveSelection(question, selected, option.value));
+                else onChange(updateMultiChoice(question, selected, option.value));
               }}
             />
             <span>{option.label}</span>

@@ -2,8 +2,9 @@ import { ArrowRight } from "lucide-react";
 import type { AnswerValue, Question } from "../../domain/types";
 import { ChoiceGroup } from "./ChoiceGroup";
 import { IdentityInput } from "./IdentityInput";
+import { ScaleInput } from "./ScaleInput";
 
-export function QuestionPage({ question, value, error, date, onChange, onContinue, onAutoAdvance, submitting, isLast }: {
+export function QuestionPage({ question, value, error, date, onChange, onContinue, onAutoAdvance, submitting, isLast, updateMultiChoice }: {
   question: Question;
   value: AnswerValue | undefined;
   error?: string;
@@ -13,6 +14,7 @@ export function QuestionPage({ question, value, error, date, onChange, onContinu
   onAutoAdvance(): void;
   submitting?: boolean;
   isLast?: boolean;
+  updateMultiChoice?(question: Question, selected: string[], optionValue: string): string[];
 }) {
   const isChoice = question.type === "single" || question.type === "multi";
   const selectionCount = Array.isArray(value) ? value.length : 0;
@@ -29,12 +31,15 @@ export function QuestionPage({ question, value, error, date, onChange, onContinu
       </div>
 
       {isChoice ? (
-        <ChoiceGroup question={question} value={value} onChange={onChange} onAutoAdvance={onAutoAdvance} />
+        <ChoiceGroup question={question} value={value} onChange={onChange} onAutoAdvance={onAutoAdvance} updateMultiChoice={updateMultiChoice} />
+      ) : question.type === "scale" ? (
+        <ScaleInput value={value} onChange={onChange} />
       ) : (
         <IdentityInput question={question} value={value} error={error} onChange={onChange} />
       )}
 
-      {question.id === "phone" && <p className="automatic-date">填写日期 <strong>{date}</strong> · 系统自动记录</p>}
+      {question.type === "phone" && <p className="automatic-date">填写日期 <strong>{date}</strong> · 系统自动记录</p>}
+      {question.helper && <p className="question-helper">{question.helper}</p>}
       {question.type === "multi" && question.maxSelections && <p className="selection-status" aria-live="polite">已选择 {selectionCount} / {question.maxSelections}</p>}
       {question.tone === "safety" && value === "1" && <p className="safety-recorded" role="status">已记录。完成问卷后将由医务人员进一步确认。</p>}
       {error && isChoice && <p className="field-error" role="alert">{error}</p>}

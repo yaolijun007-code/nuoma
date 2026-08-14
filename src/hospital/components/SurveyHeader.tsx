@@ -1,14 +1,15 @@
 import { ChevronLeft } from "lucide-react";
 import { hospitalModules } from "../surveyDefinition";
 
-export function SurveyHeader({ moduleId, moduleTitle, progress, onBack, tone = "default" }: {
+export function SurveyHeader({ moduleId, moduleTitle, progress, onBack, tone = "default", modules = hospitalModules }: {
   moduleId: string;
   moduleTitle: string;
   progress: number;
   onBack(): void;
   tone?: "default" | "safety";
+  modules?: { id: string }[];
 }) {
-  const moduleIndex = Math.max(0, hospitalModules.findIndex((module) => module.id === moduleId));
+  const moduleIndex = Math.max(0, modules.findIndex((module) => module.id === moduleId));
   return (
     <header className={`mobile-survey-header tone-${tone}`}>
       <div className="header-row">
@@ -20,7 +21,7 @@ export function SurveyHeader({ moduleId, moduleTitle, progress, onBack, tone = "
         <span style={{ width: `${progress}%` }} />
       </div>
       <div className="module-segments" aria-hidden="true">
-        {hospitalModules.map((module, index) => <span className={index < moduleIndex ? "done" : index === moduleIndex ? "current" : ""} key={module.id} />)}
+        {modules.map((module, index) => <span className={index < moduleIndex ? "done" : index === moduleIndex ? "current" : ""} key={module.id} />)}
       </div>
     </header>
   );
