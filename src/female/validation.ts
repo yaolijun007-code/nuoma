@@ -35,16 +35,18 @@ export function validateFemaleQuestion(question: FemaleQuestion, answers: Answer
   if (question.type === "multi") {
     if (!Array.isArray(value)) return "请选择至少一项";
     if (value.some((item) => !optionValues.has(item))) return "请选择有效选项";
-    if (question.minSelections && value.length < question.minSelections) return `请至少选择${question.minSelections}项`;
-    if (question.maxSelections && value.length > question.maxSelections) return `最多选择${question.maxSelections}项`;
+    const uniqueValues = [...new Set(value)];
+    if (question.minSelections && uniqueValues.length < question.minSelections) return `请至少选择${question.minSelections}项`;
+    if (question.maxSelections && uniqueValues.length > question.maxSelections) return `最多选择${question.maxSelections}项`;
     const exclusive = question.mutuallyExclusiveValues ?? [];
-    if (value.some((item) => exclusive.includes(item)) && value.length > 1) return "“无”或“不清楚”不能与其他选项同时选择";
+    if (uniqueValues.some((item) => exclusive.includes(item)) && uniqueValues.length > 1) return "“无”或“不清楚”不能与其他选项同时选择";
   }
   if (question.id === "f48" && Array.isArray(value)) {
-    if (!value.some((item) => ["0", "1", "2"].includes(item))) return "请选择一项吸烟情况";
-    if (!value.some((item) => ["3", "4", "5"].includes(item))) return "请选择一项饮酒情况";
-    if (value.filter((item) => ["0", "1", "2"].includes(item)).length > 1) return "吸烟情况只能选择一项";
-    if (value.filter((item) => ["3", "4", "5"].includes(item)).length > 1) return "饮酒情况只能选择一项";
+    const uniqueValues = [...new Set(value)];
+    if (!uniqueValues.some((item) => ["0", "1", "2"].includes(item))) return "请选择一项吸烟情况";
+    if (!uniqueValues.some((item) => ["3", "4", "5"].includes(item))) return "请选择一项饮酒情况";
+    if (uniqueValues.filter((item) => ["0", "1", "2"].includes(item)).length > 1) return "吸烟情况只能选择一项";
+    if (uniqueValues.filter((item) => ["3", "4", "5"].includes(item)).length > 1) return "饮酒情况只能选择一项";
   }
   return undefined;
 }

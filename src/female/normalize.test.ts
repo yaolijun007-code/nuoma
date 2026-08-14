@@ -38,4 +38,17 @@ describe("normalizeFemaleAnswers", () => {
     answers.untrusted = "value";
     expect(normalizeFemaleAnswers(answers).healthAnswers).not.toHaveProperty("untrusted");
   });
+
+  it("deduplicates ordinary, exclusive, and priority multi-select values", () => {
+    const answers = validFemaleAnswers();
+    answers.f11 = ["9", "9"];
+    answers.f26 = ["0", "0", "1"];
+    answers.f53 = ["0", "0", "1", "2"];
+
+    const normalized = normalizeFemaleAnswers(answers);
+
+    expect(normalized.healthAnswers.f11).toEqual(["9"]);
+    expect(normalized.healthAnswers.f26).toEqual(["0", "1"]);
+    expect(normalized.healthAnswers.f53).toEqual(["0", "1", "2"]);
+  });
 });

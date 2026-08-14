@@ -732,8 +732,28 @@ var questionIds2 = new Set(
   femaleSurvey.pages.filter((page2) => page2.kind === "question").map((page2) => page2.id)
 );
 var ageByBand = { "0": 42, "1": 47, "2": 52, "3": 57, "4": 62, "5": 67, "6": 70 };
+function normalizeFemaleAnswerMap(input) {
+  const pruned = pruneHiddenFemaleAnswers(input);
+  const normalized = {};
+  for (const page2 of femaleSurvey.pages) {
+    if (page2.kind !== "question") continue;
+    const value3 = pruned[page2.id];
+    if (value3 === void 0) continue;
+    if (page2.question.type === "multi") {
+      if (!Array.isArray(value3)) {
+        normalized[page2.id] = value3;
+        continue;
+      }
+      const allowed = new Set(page2.question.options?.map((option) => option.value) ?? []);
+      normalized[page2.id] = [...new Set(value3.filter((item) => allowed.has(item)))];
+      continue;
+    }
+    normalized[page2.id] = value3;
+  }
+  return normalized;
+}
 function normalizeFemaleAnswers(input) {
-  const answers = pruneHiddenFemaleAnswers(input);
+  const answers = normalizeFemaleAnswerMap(input);
   const healthAnswers = {};
   for (const [id, value3] of Object.entries(answers)) {
     if (questionIds2.has(id) && id !== "f1" && id !== "f2") healthAnswers[id] = value3;
@@ -790,16 +810,18 @@ function validateFemaleQuestion(question2, answers) {
   if (question2.type === "multi") {
     if (!Array.isArray(value3)) return "\u8BF7\u9009\u62E9\u81F3\u5C11\u4E00\u9879";
     if (value3.some((item) => !optionValues.has(item))) return "\u8BF7\u9009\u62E9\u6709\u6548\u9009\u9879";
-    if (question2.minSelections && value3.length < question2.minSelections) return `\u8BF7\u81F3\u5C11\u9009\u62E9${question2.minSelections}\u9879`;
-    if (question2.maxSelections && value3.length > question2.maxSelections) return `\u6700\u591A\u9009\u62E9${question2.maxSelections}\u9879`;
+    const uniqueValues = [...new Set(value3)];
+    if (question2.minSelections && uniqueValues.length < question2.minSelections) return `\u8BF7\u81F3\u5C11\u9009\u62E9${question2.minSelections}\u9879`;
+    if (question2.maxSelections && uniqueValues.length > question2.maxSelections) return `\u6700\u591A\u9009\u62E9${question2.maxSelections}\u9879`;
     const exclusive = question2.mutuallyExclusiveValues ?? [];
-    if (value3.some((item) => exclusive.includes(item)) && value3.length > 1) return "\u201C\u65E0\u201D\u6216\u201C\u4E0D\u6E05\u695A\u201D\u4E0D\u80FD\u4E0E\u5176\u4ED6\u9009\u9879\u540C\u65F6\u9009\u62E9";
+    if (uniqueValues.some((item) => exclusive.includes(item)) && uniqueValues.length > 1) return "\u201C\u65E0\u201D\u6216\u201C\u4E0D\u6E05\u695A\u201D\u4E0D\u80FD\u4E0E\u5176\u4ED6\u9009\u9879\u540C\u65F6\u9009\u62E9";
   }
   if (question2.id === "f48" && Array.isArray(value3)) {
-    if (!value3.some((item) => ["0", "1", "2"].includes(item))) return "\u8BF7\u9009\u62E9\u4E00\u9879\u5438\u70DF\u60C5\u51B5";
-    if (!value3.some((item) => ["3", "4", "5"].includes(item))) return "\u8BF7\u9009\u62E9\u4E00\u9879\u996E\u9152\u60C5\u51B5";
-    if (value3.filter((item) => ["0", "1", "2"].includes(item)).length > 1) return "\u5438\u70DF\u60C5\u51B5\u53EA\u80FD\u9009\u62E9\u4E00\u9879";
-    if (value3.filter((item) => ["3", "4", "5"].includes(item)).length > 1) return "\u996E\u9152\u60C5\u51B5\u53EA\u80FD\u9009\u62E9\u4E00\u9879";
+    const uniqueValues = [...new Set(value3)];
+    if (!uniqueValues.some((item) => ["0", "1", "2"].includes(item))) return "\u8BF7\u9009\u62E9\u4E00\u9879\u5438\u70DF\u60C5\u51B5";
+    if (!uniqueValues.some((item) => ["3", "4", "5"].includes(item))) return "\u8BF7\u9009\u62E9\u4E00\u9879\u996E\u9152\u60C5\u51B5";
+    if (uniqueValues.filter((item) => ["0", "1", "2"].includes(item)).length > 1) return "\u5438\u70DF\u60C5\u51B5\u53EA\u80FD\u9009\u62E9\u4E00\u9879";
+    if (uniqueValues.filter((item) => ["3", "4", "5"].includes(item)).length > 1) return "\u996E\u9152\u60C5\u51B5\u53EA\u80FD\u9009\u62E9\u4E00\u9879";
   }
   return void 0;
 }
@@ -832,6 +854,8 @@ var supportedQuestionnaireVersions = /* @__PURE__ */ new Set([
   "nuoma-yuanyi-male-health-v1.0",
   femaleSurvey.version
 ]);
+var HOSPITAL_VERSION = hospitalSurvey.version;
+var NUOMA_VERSION = "nuoma-yuanyi-male-health-v1.0";
 function parsePayload(input) {
   if (!input || typeof input !== "object") throw new SubmissionError("INVALID_PAYLOAD", "\u63D0\u4EA4\u5185\u5BB9\u683C\u5F0F\u4E0D\u6B63\u786E");
   const payload = input;
@@ -855,11 +879,24 @@ function parsePayload(input) {
       throw new SubmissionError("INVALID_PAYLOAD", "\u9009\u9879\u5185\u5BB9\u683C\u5F0F\u4E0D\u6B63\u786E");
     }
   }
-  const femalePayload = payload.questionnaireVersion === femaleSurvey.version;
-  const mobileHospitalPayload = !femalePayload && typeof payload.answers.phone === "string";
-  const errors = femalePayload ? Object.values(validateFemaleSubmission(payload.answers)) : mobileHospitalPayload ? Object.values(validateHospitalSubmission(payload.answers)) : maleHealthV1.sections.flatMap((section) => Object.values(validateStep(section.id, payload.answers)));
+  let normalizedAnswers = payload.answers;
+  let errors;
+  switch (payload.questionnaireVersion) {
+    case femaleSurvey.version:
+      errors = Object.values(validateFemaleSubmission(payload.answers));
+      normalizedAnswers = normalizeFemaleAnswerMap(payload.answers);
+      break;
+    case HOSPITAL_VERSION:
+      errors = Object.values(validateHospitalSubmission(payload.answers));
+      break;
+    case NUOMA_VERSION:
+      errors = maleHealthV1.sections.flatMap((section) => Object.values(validateStep(section.id, payload.answers)));
+      break;
+    default:
+      throw new SubmissionError("INVALID_PAYLOAD", "\u95EE\u5377\u7248\u672C\u4E0D\u53D7\u652F\u6301");
+  }
   if (errors.length) throw new SubmissionError("INVALID_PAYLOAD", "\u95EE\u5377\u5C1A\u672A\u5B8C\u6574\u586B\u5199");
-  return payload;
+  return { ...payload, answers: normalizedAnswers };
 }
 function confirmationId() {
   const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase();
@@ -871,37 +908,44 @@ function createSubmissionService(persistence2) {
       const payload = parsePayload(input);
       const existing = await persistence2.find(payload.clientSubmissionId);
       if (existing) return existing;
-      const femalePayload = payload.questionnaireVersion === femaleSurvey.version;
-      const mobileHospitalPayload = !femalePayload && typeof payload.answers.phone === "string";
       let identity;
       let healthAnswers;
       let assessmentAnswers;
-      if (femalePayload) {
-        const normalized = normalizeFemaleAnswers(payload.answers);
-        identity = normalized.identity;
-        healthAnswers = normalized.healthAnswers;
-        assessmentAnswers = normalized.assessmentAnswers;
-      } else if (mobileHospitalPayload) {
-        const normalized = normalizeHospitalAnswers(payload.answers);
-        identity = normalized.identity;
-        healthAnswers = normalized.healthAnswers;
-        assessmentAnswers = normalized.assessmentAnswers;
-      } else {
-        const sanitized = Object.fromEntries(
-          Object.entries(payload.answers).filter(([id2]) => allowedAnswerIds.has(id2))
-        );
-        identity = {
-          name: String(payload.answers.name).trim().slice(0, 80),
-          age: Number(payload.answers.age),
-          phoneLast4: String(payload.answers.phoneLast4)
-        };
-        delete sanitized.name;
-        delete sanitized.age;
-        delete sanitized.phoneLast4;
-        healthAnswers = sanitized;
-        assessmentAnswers = sanitized;
+      switch (payload.questionnaireVersion) {
+        case femaleSurvey.version: {
+          const normalized = normalizeFemaleAnswers(payload.answers);
+          identity = normalized.identity;
+          healthAnswers = normalized.healthAnswers;
+          assessmentAnswers = normalized.assessmentAnswers;
+          break;
+        }
+        case HOSPITAL_VERSION: {
+          const normalized = normalizeHospitalAnswers(payload.answers);
+          identity = normalized.identity;
+          healthAnswers = normalized.healthAnswers;
+          assessmentAnswers = normalized.assessmentAnswers;
+          break;
+        }
+        case NUOMA_VERSION: {
+          const sanitized = Object.fromEntries(
+            Object.entries(payload.answers).filter(([id2]) => allowedAnswerIds.has(id2))
+          );
+          identity = {
+            name: String(payload.answers.name).trim().slice(0, 80),
+            age: Number(payload.answers.age),
+            phoneLast4: String(payload.answers.phoneLast4)
+          };
+          delete sanitized.name;
+          delete sanitized.age;
+          delete sanitized.phoneLast4;
+          healthAnswers = sanitized;
+          assessmentAnswers = sanitized;
+          break;
+        }
+        default:
+          throw new SubmissionError("INVALID_PAYLOAD", "\u95EE\u5377\u7248\u672C\u4E0D\u53D7\u652F\u6301");
       }
-      const assessment = femalePayload ? assessFemaleSurvey(assessmentAnswers) : assessSurvey(assessmentAnswers);
+      const assessment = payload.questionnaireVersion === femaleSurvey.version ? assessFemaleSurvey(assessmentAnswers) : assessSurvey(assessmentAnswers);
       const id = confirmationId();
       await persistence2.save({
         session: {
@@ -1553,7 +1597,8 @@ function followUp(record) {
 }
 function buildFemaleClientReportModel(record) {
   const hasRedFlag = record.session.hasRedFlag || record.assessment.hasRedFlag;
-  const counts = (level) => record.assessment.domains.filter((domain2) => domain2.level === level).length;
+  const displayedLevels = record.assessment.domains.map((domain2) => hasRedFlag ? "clinical_priority" : domain2.level);
+  const counts = (level) => displayedLevels.filter((item) => item === level).length;
   const assessment = record.assessment;
   const attention = new Set(assessment.screeningAttention ?? []);
   const healthScore = Number(record.healthAnswers.f55);
@@ -1569,7 +1614,7 @@ function buildFemaleClientReportModel(record) {
     lifecycle: single2(record, "f5"),
     concerns: multi(record, "f53").slice(0, 3),
     healthRating: Number.isInteger(healthScore) && healthScore >= 0 && healthScore <= 10 ? healthScore : null,
-    statusCounts: { evaluate: counts("evaluate"), signal: counts("signal"), stable: counts("stable") },
+    statusCounts: { clinicalPriority: counts("clinical_priority"), evaluate: counts("evaluate"), signal: counts("signal"), stable: counts("stable") },
     domains: record.assessment.domains.slice(0, 8).map((domain2) => ({
       title: safeText2(domain2.title, "\u672A\u547D\u540D\u65B9\u5411", 40),
       level: hasRedFlag ? "clinical_priority" : domain2.level,
@@ -1708,16 +1753,17 @@ function cover(doc, model) {
   });
   heading(doc, "3", "\u516B\u7EF4\u72B6\u6001\u6982\u89C8", 586);
   const sy = 628;
-  const total = Math.max(1, model.statusCounts.evaluate + model.statusCounts.signal + model.statusCounts.stable);
-  const segments = [["\u5EFA\u8BAE\u8BC4\u4F30", model.statusCounts.evaluate, c.coral], ["\u53D8\u5316\u4FE1\u53F7", model.statusCounts.signal, c.iris], ["\u57FA\u672C\u7A33\u5B9A", model.statusCounts.stable, c.teal]];
+  const total = Math.max(1, model.statusCounts.clinicalPriority + model.statusCounts.evaluate + model.statusCounts.signal + model.statusCounts.stable);
+  const segments = [["\u4F18\u5148\u6838\u5B9E", model.statusCounts.clinicalPriority, c.red], ["\u5EFA\u8BAE\u8BC4\u4F30", model.statusCounts.evaluate, c.coral], ["\u53D8\u5316\u4FE1\u53F7", model.statusCounts.signal, c.iris], ["\u57FA\u672C\u7A33\u5B9A", model.statusCounts.stable, c.teal]];
+  const activeSegments = segments.filter(([, count]) => count > 0);
   let x = M;
-  segments.forEach(([, count, color], i) => {
-    const width = i === 2 ? W - M - x : Math.max(5, CW * count / total);
+  activeSegments.forEach(([, count, color], i) => {
+    const width = i === activeSegments.length - 1 ? W - M - x : CW * count / total;
     doc.save().roundedRect(x, sy, width, 14, 4).fill(color).restore();
     x += width;
   });
   segments.forEach(([text, count, color], i) => {
-    const sx = M + i * CW / 3;
+    const sx = M + i * CW / 4;
     doc.save().circle(sx + 5, sy + 35, 4).fill(color).restore();
     doc.fontSize(8.5).fillColor(c.muted).text(text, sx + 15, sy + 29, { lineBreak: false });
     doc.fontSize(18).fillColor(c.plumDeep).text(String(count), sx + 15, sy + 44, { lineBreak: false });

@@ -34,6 +34,7 @@ describe("female survey navigation", () => {
   it("reports progress across visible question pages only", () => {
     const pages = getVisibleFemalePages({ f5: "0" });
     expect(getFemaleSurveyProgress(pages, "f1")).toBeGreaterThan(0);
+    expect(getFemaleSurveyProgress(pages, "intro:mind")).toBeGreaterThan(getFemaleSurveyProgress(pages, "f5"));
     expect(getFemaleSurveyProgress(pages, "f55")).toBe(100);
   });
 });

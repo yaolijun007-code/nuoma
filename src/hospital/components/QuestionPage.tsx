@@ -33,7 +33,7 @@ export function QuestionPage({ question, value, error, date, onChange, onContinu
       {isChoice ? (
         <ChoiceGroup question={question} value={value} onChange={onChange} onAutoAdvance={onAutoAdvance} updateMultiChoice={updateMultiChoice} errorId={error ? `${question.id}-error` : undefined} />
       ) : question.type === "scale" ? (
-        <ScaleInput value={value} onChange={onChange} />
+        <ScaleInput value={value} onChange={onChange} error={error} errorId={error ? `${question.id}-error` : undefined} />
       ) : (
         <IdentityInput question={question} value={value} error={error} onChange={onChange} />
       )}

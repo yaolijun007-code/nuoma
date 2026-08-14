@@ -54,6 +54,13 @@ describe("hospital one-question mobile experience", () => {
     expect(screen.getByText("微生态检测")).toBeInTheDocument();
     expect(screen.getByText(/建议由医务人员进一步确认/)).toBeInTheDocument();
     expect(screen.queryByText("您的功能状态画像")).not.toBeInTheDocument();
+    expect(screen.getByText(/与微生态检测数据及已有健康资料进行综合分析/)).toBeInTheDocument();
+  });
+
+  it("uses the female-specific completion disclaimer only for the female variant", () => {
+    render(<CompletionPage hasRedFlag={false} confirmationId="JS-FEMALE" variant="female" />);
+    expect(screen.getByText(/与当前体检、既往健康资料及必要的专项检测综合分析/)).toBeInTheDocument();
+    expect(screen.queryByText(/与微生态检测数据及已有健康资料进行综合分析/)).not.toBeInTheDocument();
   });
 
   it("offers resume or restart for a valid hospital draft", async () => {

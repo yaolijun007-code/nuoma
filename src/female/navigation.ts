@@ -26,9 +26,12 @@ export function pruneHiddenFemaleAnswers(answers: AnswerMap): AnswerMap {
 export function getFemaleSurveyProgress(pages: FemaleSurveyPage[], currentPageId: string) {
   const questions = pages.filter((page) => page.kind === "question");
   if (!questions.length) return 0;
-  const index = questions.findIndex((page) => page.id === currentPageId);
-  if (index < 0) return 0;
-  return ((index + 1) / questions.length) * 100;
+  const pageIndex = pages.findIndex((page) => page.id === currentPageId);
+  if (pageIndex < 0) return 0;
+  const current = pages[pageIndex];
+  const completedQuestions = pages.slice(0, pageIndex).filter((page) => page.kind === "question").length;
+  const displayedQuestions = completedQuestions + (current.kind === "question" ? 1 : 0);
+  return (displayedQuestions / questions.length) * 100;
 }
 
 export function applyFemaleMultiChoice(question: FemaleQuestion, selected: string[], optionValue: string): string[] {

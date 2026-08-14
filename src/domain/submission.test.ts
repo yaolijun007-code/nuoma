@@ -12,7 +12,7 @@ const validAnswers = (): AnswerMap => ({
 });
 
 const payload = (overrides: Record<string, unknown> = {}) => ({
-  questionnaireVersion: "male-health-v1.0",
+  questionnaireVersion: "nuoma-yuanyi-male-health-v1.0",
   clientSubmissionId: "550e8400-e29b-41d4-a716-446655440000",
   honeypot: "",
   answers: validAnswers(),
@@ -82,9 +82,18 @@ describe("createSubmissionService", () => {
   it("accepts the mobile hospital payload without age and persists a searchable phone", async () => {
     const save = vi.fn().mockResolvedValue(undefined);
     const service = createSubmissionService({ find: vi.fn().mockResolvedValue(null), save });
-    await service.submit(payload({ answers: validHospitalAnswers() }));
+    await service.submit(payload({ questionnaireVersion: "male-health-v1.0", answers: validHospitalAnswers() }));
 
     expect(save.mock.calls[0][0].identity).toEqual({ name: "虚构用户", phone: "13800000000", phoneLast4: "0000", age: null });
+  });
+
+  it("rejects answer shapes that do not match the explicit questionnaire version", async () => {
+    const service = createSubmissionService({ find: vi.fn().mockResolvedValue(null), save: vi.fn() });
+
+    await expect(service.submit(payload({ questionnaireVersion: "male-health-v1.0", answers: validAnswers() })))
+      .rejects.toMatchObject({ code: "INVALID_PAYLOAD" });
+    await expect(service.submit(payload({ questionnaireVersion: "nuoma-yuanyi-male-health-v1.0", answers: validHospitalAnswers() })))
+      .rejects.toMatchObject({ code: "INVALID_PAYLOAD" });
   });
 
   it("routes the female questionnaire through female normalization and assessment", async () => {
@@ -107,5 +116,19 @@ describe("createSubmissionService", () => {
     const answers = validFemaleAnswers();
     answers.f53 = ["0", "1", "2", "3"];
     await expect(service.submit(payload({ questionnaireVersion: "female-health-v1.0", answers }))).rejects.toMatchObject({ code: "INVALID_PAYLOAD" });
+  });
+
+  it("deduplicates female multi-select values before validation, persistence, and assessment", async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    const service = createSubmissionService({ find: vi.fn().mockResolvedValue(null), save });
+    const answers = validFemaleAnswers();
+    answers.f26 = ["0", "0"];
+    answers.f53 = ["0", "0", "1", "2"];
+
+    const response = await service.submit(payload({ questionnaireVersion: "female-health-v1.0", answers }));
+
+    expect(save.mock.calls[0][0].healthAnswers.f26).toEqual(["0"]);
+    expect(save.mock.calls[0][0].healthAnswers.f53).toEqual(["0", "1", "2"]);
+    expect(response.assessment.domains.find((item) => item.id === "metabolicCardio")?.level).toBe("signal");
   });
 });

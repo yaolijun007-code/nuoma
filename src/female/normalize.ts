@@ -14,8 +14,29 @@ const questionIds = new Set(
 
 const ageByBand: Record<string, number> = { "0": 42, "1": 47, "2": 52, "3": 57, "4": 62, "5": 67, "6": 70 };
 
+export function normalizeFemaleAnswerMap(input: AnswerMap): AnswerMap {
+  const pruned = pruneHiddenFemaleAnswers(input);
+  const normalized: AnswerMap = {};
+  for (const page of femaleSurvey.pages) {
+    if (page.kind !== "question") continue;
+    const value = pruned[page.id];
+    if (value === undefined) continue;
+    if (page.question.type === "multi") {
+      if (!Array.isArray(value)) {
+        normalized[page.id] = value;
+        continue;
+      }
+      const allowed = new Set(page.question.options?.map((option) => option.value) ?? []);
+      normalized[page.id] = [...new Set(value.filter((item) => allowed.has(item)))];
+      continue;
+    }
+    normalized[page.id] = value;
+  }
+  return normalized;
+}
+
 export function normalizeFemaleAnswers(input: AnswerMap): NormalizedFemaleAnswers {
-  const answers = pruneHiddenFemaleAnswers(input);
+  const answers = normalizeFemaleAnswerMap(input);
   const healthAnswers: Record<string, unknown> = {};
   for (const [id, value] of Object.entries(answers)) {
     if (questionIds.has(id) && id !== "f1" && id !== "f2") healthAnswers[id] = value;

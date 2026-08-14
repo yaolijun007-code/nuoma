@@ -15,7 +15,7 @@ export interface FemaleClientReportModel {
   lifecycle: string;
   concerns: string[];
   healthRating: number | null;
-  statusCounts: { evaluate: number; signal: number; stable: number };
+  statusCounts: { clinicalPriority: number; evaluate: number; signal: number; stable: number };
   domains: Array<{ title: string; level: AssessmentLevel; levelLabel: string; reason: string; recommendation: string }>;
   screenings: Array<{ label: string; value: string; attention: boolean }>;
   lifestyle: Array<{ label: string; value: string }>;
@@ -68,7 +68,8 @@ function followUp(record: PersistedSubmission) {
 
 export function buildFemaleClientReportModel(record: PersistedSubmission): FemaleClientReportModel {
   const hasRedFlag = record.session.hasRedFlag || record.assessment.hasRedFlag;
-  const counts = (level: "evaluate" | "signal" | "stable") => record.assessment.domains.filter((domain) => domain.level === level).length;
+  const displayedLevels = record.assessment.domains.map((domain) => hasRedFlag ? "clinical_priority" : domain.level);
+  const counts = (level: AssessmentLevel) => displayedLevels.filter((item) => item === level).length;
   const assessment = record.assessment as FemaleAssessmentResult;
   const attention = new Set(assessment.screeningAttention ?? []);
   const healthScore = Number(record.healthAnswers.f55);
@@ -85,7 +86,7 @@ export function buildFemaleClientReportModel(record: PersistedSubmission): Femal
     lifecycle: single(record, "f5"),
     concerns: multi(record, "f53").slice(0, 3),
     healthRating: Number.isInteger(healthScore) && healthScore >= 0 && healthScore <= 10 ? healthScore : null,
-    statusCounts: { evaluate: counts("evaluate"), signal: counts("signal"), stable: counts("stable") },
+    statusCounts: { clinicalPriority: counts("clinical_priority"), evaluate: counts("evaluate"), signal: counts("signal"), stable: counts("stable") },
     domains: record.assessment.domains.slice(0, 8).map((domain) => ({
       title: safeText(domain.title, "未命名方向", 40),
       level: hasRedFlag ? "clinical_priority" : domain.level,

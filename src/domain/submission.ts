@@ -6,7 +6,7 @@ import { normalizeHospitalAnswers } from "../hospital/normalize";
 import { hospitalSurvey } from "../hospital/surveyDefinition";
 import { validateHospitalSubmission } from "../hospital/validation";
 import { assessFemaleSurvey } from "../female/assessment";
-import { normalizeFemaleAnswers } from "../female/normalize";
+import { normalizeFemaleAnswerMap, normalizeFemaleAnswers } from "../female/normalize";
 import { femaleSurvey } from "../female/surveyDefinition";
 import { validateFemaleSubmission } from "../female/validation";
 
@@ -57,6 +57,8 @@ export const supportedQuestionnaireVersions = new Set([
   "nuoma-yuanyi-male-health-v1.0",
   femaleSurvey.version,
 ]);
+const HOSPITAL_VERSION = hospitalSurvey.version;
+const NUOMA_VERSION = "nuoma-yuanyi-male-health-v1.0";
 
 function parsePayload(input: unknown): SubmissionPayload {
   if (!input || typeof input !== "object") throw new SubmissionError("INVALID_PAYLOAD", "提交内容格式不正确");
@@ -81,15 +83,24 @@ function parsePayload(input: unknown): SubmissionPayload {
       throw new SubmissionError("INVALID_PAYLOAD", "选项内容格式不正确");
     }
   }
-  const femalePayload = payload.questionnaireVersion === femaleSurvey.version;
-  const mobileHospitalPayload = !femalePayload && typeof payload.answers.phone === "string";
-  const errors = femalePayload
-    ? Object.values(validateFemaleSubmission(payload.answers))
-    : mobileHospitalPayload
-      ? Object.values(validateHospitalSubmission(payload.answers))
-      : maleHealthV1.sections.flatMap((section) => Object.values(validateStep(section.id, payload.answers!)));
+  let normalizedAnswers = payload.answers;
+  let errors: string[];
+  switch (payload.questionnaireVersion) {
+    case femaleSurvey.version:
+      errors = Object.values(validateFemaleSubmission(payload.answers));
+      normalizedAnswers = normalizeFemaleAnswerMap(payload.answers);
+      break;
+    case HOSPITAL_VERSION:
+      errors = Object.values(validateHospitalSubmission(payload.answers));
+      break;
+    case NUOMA_VERSION:
+      errors = maleHealthV1.sections.flatMap((section) => Object.values(validateStep(section.id, payload.answers!)));
+      break;
+    default:
+      throw new SubmissionError("INVALID_PAYLOAD", "问卷版本不受支持");
+  }
   if (errors.length) throw new SubmissionError("INVALID_PAYLOAD", "问卷尚未完整填写");
-  return payload as SubmissionPayload;
+  return { ...(payload as SubmissionPayload), answers: normalizedAnswers };
 }
 
 function confirmationId() {
@@ -104,38 +115,45 @@ export function createSubmissionService(persistence: SubmissionPersistence) {
       const existing = await persistence.find(payload.clientSubmissionId);
       if (existing) return existing;
 
-      const femalePayload = payload.questionnaireVersion === femaleSurvey.version;
-      const mobileHospitalPayload = !femalePayload && typeof payload.answers.phone === "string";
       let identity: PersistedSubmission["identity"];
       let healthAnswers: Record<string, unknown>;
       let assessmentAnswers: AnswerMap;
-      if (femalePayload) {
-        const normalized = normalizeFemaleAnswers(payload.answers);
-        identity = normalized.identity;
-        healthAnswers = normalized.healthAnswers;
-        assessmentAnswers = normalized.assessmentAnswers;
-      } else if (mobileHospitalPayload) {
-        const normalized = normalizeHospitalAnswers(payload.answers);
-        identity = normalized.identity;
-        healthAnswers = normalized.healthAnswers;
-        assessmentAnswers = normalized.assessmentAnswers;
-      } else {
-        const sanitized = Object.fromEntries(
-          Object.entries(payload.answers).filter(([id]) => allowedAnswerIds.has(id)),
-        ) as AnswerMap;
-        identity = {
-          name: String(payload.answers.name).trim().slice(0, 80),
-          age: Number(payload.answers.age),
-          phoneLast4: String(payload.answers.phoneLast4),
-        };
-        delete sanitized.name;
-        delete sanitized.age;
-        delete sanitized.phoneLast4;
-        healthAnswers = sanitized;
-        assessmentAnswers = sanitized;
+      switch (payload.questionnaireVersion) {
+        case femaleSurvey.version: {
+          const normalized = normalizeFemaleAnswers(payload.answers);
+          identity = normalized.identity;
+          healthAnswers = normalized.healthAnswers;
+          assessmentAnswers = normalized.assessmentAnswers;
+          break;
+        }
+        case HOSPITAL_VERSION: {
+          const normalized = normalizeHospitalAnswers(payload.answers);
+          identity = normalized.identity;
+          healthAnswers = normalized.healthAnswers;
+          assessmentAnswers = normalized.assessmentAnswers;
+          break;
+        }
+        case NUOMA_VERSION: {
+          const sanitized = Object.fromEntries(
+            Object.entries(payload.answers).filter(([id]) => allowedAnswerIds.has(id)),
+          ) as AnswerMap;
+          identity = {
+            name: String(payload.answers.name).trim().slice(0, 80),
+            age: Number(payload.answers.age),
+            phoneLast4: String(payload.answers.phoneLast4),
+          };
+          delete sanitized.name;
+          delete sanitized.age;
+          delete sanitized.phoneLast4;
+          healthAnswers = sanitized;
+          assessmentAnswers = sanitized;
+          break;
+        }
+        default:
+          throw new SubmissionError("INVALID_PAYLOAD", "问卷版本不受支持");
       }
 
-      const assessment = femalePayload ? assessFemaleSurvey(assessmentAnswers) : assessSurvey(assessmentAnswers);
+      const assessment = payload.questionnaireVersion === femaleSurvey.version ? assessFemaleSurvey(assessmentAnswers) : assessSurvey(assessmentAnswers);
       const id = confirmationId();
       await persistence.save({
         session: {

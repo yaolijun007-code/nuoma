@@ -111,15 +111,16 @@ function cover(doc: PDFKit.PDFDocument, model: FemaleClientReportModel) {
 
   heading(doc, "3", "八维状态概览", 586);
   const sy = 628;
-  const total = Math.max(1, model.statusCounts.evaluate + model.statusCounts.signal + model.statusCounts.stable);
-  const segments = [["建议评估", model.statusCounts.evaluate, c.coral], ["变化信号", model.statusCounts.signal, c.iris], ["基本稳定", model.statusCounts.stable, c.teal]] as const;
+  const total = Math.max(1, model.statusCounts.clinicalPriority + model.statusCounts.evaluate + model.statusCounts.signal + model.statusCounts.stable);
+  const segments = [["优先核实", model.statusCounts.clinicalPriority, c.red], ["建议评估", model.statusCounts.evaluate, c.coral], ["变化信号", model.statusCounts.signal, c.iris], ["基本稳定", model.statusCounts.stable, c.teal]] as const;
+  const activeSegments = segments.filter(([, count]) => count > 0);
   let x = M;
-  segments.forEach(([, count, color], i) => {
-    const width = i === 2 ? W - M - x : Math.max(5, CW * count / total);
+  activeSegments.forEach(([, count, color], i) => {
+    const width = i === activeSegments.length - 1 ? W - M - x : CW * count / total;
     doc.save().roundedRect(x, sy, width, 14, 4).fill(color).restore(); x += width;
   });
   segments.forEach(([text, count, color], i) => {
-    const sx = M + i * CW / 3;
+    const sx = M + i * CW / 4;
     doc.save().circle(sx + 5, sy + 35, 4).fill(color).restore();
     doc.fontSize(8.5).fillColor(c.muted).text(text, sx + 15, sy + 29, { lineBreak: false });
     doc.fontSize(18).fillColor(c.plumDeep).text(String(count), sx + 15, sy + 44, { lineBreak: false });

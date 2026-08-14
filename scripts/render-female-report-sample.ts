@@ -33,8 +33,7 @@ const sample: PersistedSubmission = {
 
 const model = buildFemaleClientReportModel(sample);
 const fontPath = path.resolve("functions/submitSurvey/assets/NotoSansCJKsc-Regular.otf");
-const mainRepository = "/Users/yaolijun/Documents/Codex/2026-08-13/https-github-com-yaolijun007-code-nuoma";
-const outputDirectory = path.join(mainRepository, "output/pdf");
+const outputDirectory = path.resolve("output/pdf");
 const outputPath = path.join(outputDirectory, femaleClientReportFilename(model));
 await mkdir(outputDirectory, { recursive: true });
 await writeFile(outputPath, await renderFemaleClientReportPdf(model, fontPath));

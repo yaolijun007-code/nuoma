@@ -4,6 +4,9 @@ export function CompletionPage({ hasRedFlag, confirmationId, variant = "male" }:
   const collected = variant === "female"
     ? ["女性生命周期", "睡眠与身心状态", "代谢与身体功能", "女性专项信息", "胃肠与生活方式"]
     : ["基础健康信息", "身体功能状态", "胃肠与生活方式", "男性健康信息", "医学安全信息"];
+  const disclaimer = variant === "female"
+    ? "本次信息将与当前体检、既往健康资料及必要的专项检测综合分析，不依据问卷单独判断疾病或生物年龄。"
+    : "本次信息将与微生态检测数据及已有健康资料进行综合分析，不依据问卷单独判断疾病或生物年龄。";
   return (
     <main className="hospital-completion">
       <div className="completion-mark" aria-hidden="true"><ClipboardCheck /></div>
@@ -25,7 +28,7 @@ export function CompletionPage({ hasRedFlag, confirmationId, variant = "male" }:
         <div className="flow-step"><span>03</span><strong>综合健康报告</strong></div>
       </section>
 
-      <p className="completion-disclaimer">本次信息将与当前体检、既往健康资料及必要的专项检测综合分析，不依据问卷单独判断疾病或生物年龄。</p>
+      <p className="completion-disclaimer">{disclaimer}</p>
       <button type="button" className="mobile-primary-button" onClick={() => document.getElementById("next-steps")?.scrollIntoView({ behavior: "smooth" })}>查看下一步 <ArrowRight aria-hidden="true" /></button>
       <p className="confirmation-code">记录编号 {confirmationId}</p>
     </main>

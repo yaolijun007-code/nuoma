@@ -33,7 +33,7 @@ describe("female client report model", () => {
       lifecycle: "已连续12个月以上没有月经",
       healthRating: 8,
       concerns: ["女性激素与围绝经期变化", "睡眠", "体重与腰腹脂肪"],
-      statusCounts: { evaluate: 1, signal: 1, stable: 6 },
+      statusCounts: { clinicalPriority: 0, evaluate: 1, signal: 1, stable: 6 },
     });
     expect(model.screenings).toHaveLength(3);
     expect(model.lifestyle.find((item) => item.label === "运动状态")?.value).toContain("每周运动1—2次");
@@ -48,6 +48,7 @@ describe("female client report model", () => {
     const model = buildFemaleClientReportModel(input);
     expect(model.safetyNotice).toContain("医务人员优先核实");
     expect(model.domains.every((domain) => domain.level === "clinical_priority")).toBe(true);
+    expect(model.statusCounts).toEqual({ clinicalPriority: 8, evaluate: 0, signal: 0, stable: 0 });
     expect(JSON.stringify(model)).not.toContain("f24");
   });
 });
