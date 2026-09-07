@@ -63,6 +63,15 @@ export interface PreadmissionRecord {
   clientSubmissionId: string;
   patientId: string;
   patientName: string;
+  patientSnapshot: {
+    patientCode: string;
+    hospitalNo: string;
+    sex: string;
+    age: number | null;
+    admissionCount: number;
+    latestAdmissionDate?: string;
+    latestDischargeDate?: string;
+  };
   contactPhone: string;
   plannedAdmissionDate: string;
   intendedDepartment: string;
