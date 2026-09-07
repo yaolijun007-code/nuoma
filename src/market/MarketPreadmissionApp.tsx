@@ -264,14 +264,14 @@ function ChangePasswordView({ onChangePassword, onBack }: {
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            minLength={8}
+            minLength={4}
             maxLength={64}
             aria-invalid={errorField === "new"}
             aria-describedby={describedBy("new", true)}
             disabled={busy}
             required
           />
-          <small id="market-password-rule" className="password-rule">8–64 位，包含大小写字母、数字和特殊字符。</small>
+          <small id="market-password-rule" className="password-rule">至少 4 位，可以使用纯数字。</small>
         </div>
         <div className="form-field">
           <label htmlFor="confirm-account-password">确认新密码</label>
@@ -284,7 +284,7 @@ function ChangePasswordView({ onChangePassword, onBack }: {
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            minLength={8}
+            minLength={4}
             maxLength={64}
             aria-invalid={errorField === "confirm"}
             aria-describedby={describedBy("confirm")}

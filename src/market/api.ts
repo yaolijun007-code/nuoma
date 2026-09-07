@@ -39,16 +39,12 @@ export class MarketApiError extends Error {
   }
 }
 
-export const marketPasswordRuleMessage = "新密码需为 8–64 位，并包含大小写字母、数字和特殊字符";
+export const marketPasswordRuleMessage = "新密码至少 4 位，可以使用纯数字";
 
 export function isStrongMarketPassword(value: string) {
-  return value.length >= 8
+  return value.length >= 4
     && value.length <= 64
-    && /^[\x21-\x7E]+$/.test(value)
-    && /[A-Z]/.test(value)
-    && /[a-z]/.test(value)
-    && /\d/.test(value)
-    && /[^A-Za-z0-9]/.test(value);
+    && /^[\x21-\x7E]+$/.test(value);
 }
 
 function objectValue(value: unknown): Record<string, unknown> | null {

@@ -217,11 +217,11 @@ describe("market preadmission app", () => {
     render(<MarketPreadmissionApp api={api} />);
     await user.click(await screen.findByRole("button", { name: "修改密码" }));
     await user.type(screen.getByLabelText("旧密码"), "OldPass1!");
-    await user.type(screen.getByLabelText("新密码"), "NewPass2@");
-    await user.type(screen.getByLabelText("确认新密码"), "NewPass2@");
+    await user.type(screen.getByLabelText("新密码"), "123456");
+    await user.type(screen.getByLabelText("确认新密码"), "123456");
     await user.click(screen.getByRole("button", { name: "确认修改密码" }));
 
-    expect(api.changePassword).toHaveBeenCalledWith("OldPass1!", "NewPass2@");
+    expect(api.changePassword).toHaveBeenCalledWith("OldPass1!", "123456");
     expect(await screen.findByRole("status")).toHaveTextContent("密码修改成功");
     expect(screen.getByLabelText("旧密码")).toHaveValue("");
     expect(screen.getByLabelText("新密码")).toHaveValue("");
@@ -248,13 +248,13 @@ describe("market preadmission app", () => {
     render(<MarketPreadmissionApp api={api} />);
     await user.click(await screen.findByRole("button", { name: "修改密码" }));
     await user.type(screen.getByLabelText("旧密码"), "OldPass1!");
-    expect(screen.getByLabelText("新密码")).toHaveAttribute("minlength", "8");
+    expect(screen.getByLabelText("新密码")).toHaveAttribute("minlength", "4");
     expect(screen.getByLabelText("新密码")).toHaveAttribute("maxlength", "64");
-    await user.type(screen.getByLabelText("新密码"), "weakpass");
-    await user.type(screen.getByLabelText("确认新密码"), "weakpass");
+    await user.type(screen.getByLabelText("新密码"), "123");
+    await user.type(screen.getByLabelText("确认新密码"), "123");
     await user.click(screen.getByRole("button", { name: "确认修改密码" }));
 
-    expect(screen.getByRole("alert")).toHaveTextContent("新密码需为 8–64 位，并包含大小写字母、数字和特殊字符");
+    expect(screen.getByRole("alert")).toHaveTextContent("新密码至少 4 位，可以使用纯数字");
     expect(api.changePassword).not.toHaveBeenCalled();
   });
 

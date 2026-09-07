@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - 仅修改当前登录账号本人的密码，不增加账号管理、短信找回或邮箱找回。
-- 新密码为 8–64 位可打印字符，且包含大写字母、小写字母、数字和特殊字符，并且不能与旧密码相同。
+- 新密码为 4–64 位可打印字符，可以使用纯数字，并且不能与旧密码相同。市场账号初始密码使用各自独立的 6 位数字。
 - 密码不得进入业务云函数、数据库、日志、URL、前端持久化或 Git。
 - 390px 手机宽度下表单无横向溢出，输入框与按钮触控目标不小于 44px。
 - 所有输入有可见标签，错误与成功状态可被读屏软件感知。
@@ -48,7 +48,7 @@ it("maps weak-password and network failures without leaking provider details", a
   const weak = vi.fn().mockResolvedValue({ data: null, error: { code: "password_too_weak", message: "provider detail" } });
   const network = vi.fn().mockRejectedValue(new Error("request carried a secret"));
   const makeApi = (resetPasswordForOld: typeof weak) => createMarketApi({ auth: () => ({ signInWithPassword: vi.fn(), signOut: vi.fn(), getSession: vi.fn(), resetPasswordForOld }), callFunction: vi.fn() });
-  await expect(makeApi(weak).changePassword("OldPass1!", "weak")).rejects.toMatchObject({ code: "WEAK_PASSWORD", message: "新密码需为 8–64 位，并包含大小写字母、数字和特殊字符" });
+  await expect(makeApi(weak).changePassword("OldPass1!", "1234")).rejects.toMatchObject({ code: "WEAK_PASSWORD", message: "新密码至少 4 位，可以使用纯数字" });
   await expect(makeApi(network).changePassword("OldPass1!", "NewPass2@")).rejects.toMatchObject({ code: "PASSWORD_CHANGE_FAILED", message: "密码修改失败，请稍后重试" });
 });
 ```

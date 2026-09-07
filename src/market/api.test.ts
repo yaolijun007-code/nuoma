@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { MarketApiError, createMarketApi, parseFunctionResult } from "./api";
+import { MarketApiError, createMarketApi, isStrongMarketPassword, parseFunctionResult } from "./api";
 
 describe("market CloudBase API", () => {
   it("parses wrapped cloud function success results", () => {
@@ -68,15 +68,20 @@ describe("market CloudBase API", () => {
     await expect(api.restoreSession()).resolves.toBeNull();
   });
 
-  it("changes the current user's password with the old password", async () => {
+  it("accepts a four-digit numeric password and rejects shorter values", () => {
+    expect(isStrongMarketPassword("1234")).toBe(true);
+    expect(isStrongMarketPassword("123")).toBe(false);
+  });
+
+  it("changes the current user's password to a numeric password with the old password", async () => {
     const resetPasswordForOld = vi.fn().mockResolvedValue({ data: { session: {} }, error: null });
     const api = createMarketApi({
       auth: () => ({ signInWithPassword: vi.fn(), signOut: vi.fn(), getSession: vi.fn(), resetPasswordForOld }),
       callFunction: vi.fn(),
     });
 
-    await expect(api.changePassword("OldPass1!", "NewPass2@")).resolves.toBeUndefined();
-    expect(resetPasswordForOld).toHaveBeenCalledWith({ old_password: "OldPass1!", new_password: "NewPass2@" });
+    await expect(api.changePassword("OldPass1!", "123456")).resolves.toBeUndefined();
+    expect(resetPasswordForOld).toHaveBeenCalledWith({ old_password: "OldPass1!", new_password: "123456" });
   });
 
   it("maps an invalid old password to a safe Chinese error", async () => {
@@ -104,9 +109,9 @@ describe("market CloudBase API", () => {
       auth: () => ({ signInWithPassword: vi.fn(), signOut: vi.fn(), getSession: vi.fn(), resetPasswordForOld: weakPassword }),
       callFunction: vi.fn(),
     });
-    await expect(weakApi.changePassword("OldPass1!", "weak")).rejects.toMatchObject({
+    await expect(weakApi.changePassword("OldPass1!", "1234")).rejects.toMatchObject({
       code: "WEAK_PASSWORD",
-      message: "新密码需为 8–64 位，并包含大小写字母、数字和特殊字符",
+      message: "新密码至少 4 位，可以使用纯数字",
     });
 
     const networkFailure = vi.fn().mockRejectedValue(new Error("request carried a secret"));
