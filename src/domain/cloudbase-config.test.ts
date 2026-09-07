@@ -74,4 +74,39 @@ describe("CloudBase function configuration", () => {
     expect(adminSource).not.toContain(".add({ data:");
     expect(submitSource).toContain("DEFAULT_ALLOWED_ORIGIN");
   });
+
+  it("keeps every market collection closed to direct client reads and writes", () => {
+    const rules = JSON.parse(readFileSync(
+      new URL("../../cloudbase/database-deny-all.rules.json", import.meta.url),
+      "utf8",
+    ));
+    for (const collection of [
+      "hospital_market_users",
+      "hospital_patients",
+      "hospital_encounters",
+      "hospital_diagnosis_stats",
+      "hospital_preadmissions",
+      "hospital_preadmission_notification_logs",
+      "hospital_market_audit_logs",
+    ]) {
+      expect(rules[collection]).toEqual({ read: false, write: false });
+    }
+  });
+
+  it("versions the required unique and query indexes for market collections", () => {
+    const indexes = JSON.parse(readFileSync(
+      new URL("../../cloudbase/market-indexes.json", import.meta.url),
+      "utf8",
+    ));
+    expect(indexes.hospital_patients).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "patient_id_unique", unique: true }),
+      expect.objectContaining({ name: "name", unique: false }),
+      expect.objectContaining({ name: "phone", unique: false }),
+    ]));
+    expect(indexes.hospital_preadmissions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "record_id_unique", unique: true }),
+      expect.objectContaining({ name: "submission_id_unique", unique: true }),
+      expect.objectContaining({ name: "creator_created_at", unique: false }),
+    ]));
+  });
 });

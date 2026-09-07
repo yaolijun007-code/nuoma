@@ -37,6 +37,12 @@ function cleanRecord<T extends Record<string, unknown>>(value: T) {
   return Object.fromEntries(Object.entries(value).filter(([, field]) => field !== undefined));
 }
 
+function withoutInternalId<T>(value: Record<string, unknown> | undefined): T | null {
+  if (!value) return null;
+  const { _id: _internalId, ...record } = value;
+  return record as T;
+}
+
 function toPatientSummary(value: Record<string, unknown>): PatientSummary {
   return {
     patientId: String(value.patientId ?? ""),
@@ -102,19 +108,60 @@ const repository: MarketRepository = {
     return { patient: toPatientSummary(rawPatient), encounters, diagnoses } satisfies PatientHistory;
   },
 
-  async findPreadmissionBySubmissionId(clientSubmissionId) {
-    const result = await db.collection(collectionNames.preadmissions).where({ clientSubmissionId }).limit(1).get();
-    return (result.data[0] as PreadmissionRecord | undefined) ?? null;
+  async createNewPatientIfAbsent(patient, createdByUid, createdAt) {
+    try {
+      await db.collection(collectionNames.patients).add(cleanRecord({
+        ...(patient as unknown as Record<string, unknown>),
+        _id: `patient_${patient.patientId}`,
+        source: "market_new",
+        createdByUid,
+        createdAt,
+        updatedAt: createdAt,
+      }));
+      return patient;
+    } catch (error) {
+      const result = await db.collection(collectionNames.patients).where({ patientId: patient.patientId }).limit(1).get();
+      const existing = result.data[0] as Record<string, unknown> | undefined;
+      if (existing) return toPatientSummary(existing);
+      throw error;
+    }
   },
 
-  async createPreadmission(record) {
-    await db.collection(collectionNames.preadmissions).add(cleanRecord(record as unknown as Record<string, unknown>));
-    return record;
+  async findPreadmissionBySubmissionId(clientSubmissionId) {
+    const result = await db.collection(collectionNames.preadmissions).where({ clientSubmissionId }).limit(1).get();
+    return withoutInternalId<PreadmissionRecord>(result.data[0] as Record<string, unknown> | undefined);
+  },
+
+  async createPreadmissionIfAbsent(record) {
+    try {
+      await db.collection(collectionNames.preadmissions).add(cleanRecord({
+        ...(record as unknown as Record<string, unknown>),
+        _id: `preadmission_${record.clientSubmissionId}`,
+      }));
+      return { record, created: true };
+    } catch (error) {
+      const existing = await this.findPreadmissionBySubmissionId(record.clientSubmissionId);
+      if (existing) return { record: existing, created: false };
+      throw error;
+    }
   },
 
   async getPreadmission(recordId) {
     const result = await db.collection(collectionNames.preadmissions).where({ recordId }).limit(1).get();
-    return (result.data[0] as PreadmissionRecord | undefined) ?? null;
+    return withoutInternalId<PreadmissionRecord>(result.data[0] as Record<string, unknown> | undefined);
+  },
+
+  async claimNotification(recordId, expectedAttempts, update) {
+    const result = await db.collection(collectionNames.preadmissions).where({
+      recordId,
+      notificationAttempts: expectedAttempts,
+      notificationStatus: db.command.in(["pending", "failed", "not_configured"]),
+    }).update(cleanRecord(update as unknown as Record<string, unknown>));
+    const updatedCount = Number((result as unknown as { updated?: number; stats?: { updated?: number } }).updated
+      ?? (result as unknown as { stats?: { updated?: number } }).stats?.updated
+      ?? 0);
+    if (updatedCount !== 1) return null;
+    return this.getPreadmission(recordId);
   },
 
   async updateNotification(recordId, update) {
@@ -123,7 +170,7 @@ const repository: MarketRepository = {
     if (!existing?._id) throw new MarketServiceError("RECORD_NOT_FOUND", "登记记录不存在");
     const cleaned = cleanRecord(update as unknown as Record<string, unknown>);
     await db.collection(collectionNames.preadmissions).doc(existing._id).update(cleaned);
-    return { ...existing, ...cleaned } as unknown as PreadmissionRecord;
+    return withoutInternalId<PreadmissionRecord>({ ...existing, ...cleaned }) as PreadmissionRecord;
   },
 
   async listPreadmissions(uid, limit) {
@@ -162,16 +209,23 @@ function statusForCode(code: string) {
   return 400;
 }
 
+function requestIdFromContext(context: unknown) {
+  if (!context || typeof context !== "object") return "unavailable";
+  const value = context as Record<string, unknown>;
+  return String(value.request_id ?? value.requestId ?? value.SCF_REQUEST_ID ?? "unavailable");
+}
+
 export async function main(event: Record<string, unknown>, context: unknown) {
   try {
     const uid = getCloudbaseContext(context as never).TCB_UUID || "";
+    const requestId = requestIdFromContext(context);
     const input = parseMarketRequest(event);
-    if (input.action === "getSession") return response(200, { data: await service.getSession(uid) });
-    if (input.action === "searchPatients") return response(200, { data: await service.searchPatients(uid, String(input.query ?? "")) });
-    if (input.action === "getPatientHistory") return response(200, { data: await service.getPatientHistory(uid, String(input.patientId ?? "")) });
-    if (input.action === "createPreadmission") return response(200, { data: await service.createPreadmission(uid, input.draft as PreadmissionDraft) });
-    if (input.action === "listPreadmissions") return response(200, { data: await service.listPreadmissions(uid, Number(input.limit ?? 30)) });
-    if (input.action === "retryNotification") return response(200, { data: await service.retryNotification(uid, String(input.recordId ?? "")) });
+    if (input.action === "getSession") return response(200, { data: await service.getSession(uid, requestId) });
+    if (input.action === "searchPatients") return response(200, { data: await service.searchPatients(uid, String(input.query ?? ""), requestId) });
+    if (input.action === "getPatientHistory") return response(200, { data: await service.getPatientHistory(uid, String(input.patientId ?? ""), requestId) });
+    if (input.action === "createPreadmission") return response(200, { data: await service.createPreadmission(uid, input.draft as PreadmissionDraft, requestId) });
+    if (input.action === "listPreadmissions") return response(200, { data: await service.listPreadmissions(uid, Number(input.limit ?? 30), requestId) });
+    if (input.action === "retryNotification") return response(200, { data: await service.retryNotification(uid, String(input.recordId ?? ""), requestId) });
     throw new MarketServiceError("INVALID_ACTION", "操作类型无效");
   } catch (error) {
     if (error instanceof MarketServiceError) {

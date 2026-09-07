@@ -21,6 +21,7 @@
 7. 按用户明确要求，企业微信群消息包含患者完整姓名和完整联系电话。群消息不包含详细住院史、全部诊断、费用、住址或其他无关健康信息。
 8. 群消息把记录标记为“预住院线索，待医务人员确认”，不得表述为已经安排床位、已经确诊或已经收治。
 9. 查询、查看详情、创建登记、通知发送结果与重试均写入审计日志。
+10. 查不到历史记录的新患者可填写姓名、联系方式和可选的性别/年龄，建立零住院史档案后继续预住院登记；新档案不与同名或同手机号患者自动合并。
 
 ## 3. 用户与权限
 
@@ -54,6 +55,8 @@
 
 搜索区只保留一个输入框，支持姓名、手机号、住院号；结果卡片显示足够区分患者的信息和身份风险提示。用户选定患者后进入详情，不自动选择同名记录。
 
+搜索区同时提供“新患者首次登记”入口。新患者只采集本次业务必需的姓名、联系方式和可选性别/年龄，提交预住院时以幂等标识建立可再次查询的零住院史档案。
+
 患者详情上部为精简身份卡，下部为按时间倒序的住院记录表；手机窄屏改为纵向卡片。诊断统计与住院时间使用明确字段名，不把缺失出院日期推断为仍在住院。
 
 预住院表单与患者详情同页衔接，减少跳转。提交按钮文案为“保存并推送到企业微信群”，提交中禁止重复点击。
@@ -81,7 +84,7 @@
 
 ### `hospital_patients`
 
-`patientId`、`patientCode`、`name`、`sex`、`age`、`phone`、`hospitalNo`、`admissionCount`、`identityRisk`、`updatedAt`。建立姓名、标准化手机号、住院号和患者 ID 查询索引。
+`patientId`、`patientCode`、`name`、`sex`、`age`、`phone`、`hospitalNo`、`admissionCount`、`identityRisk`、`source`、`updatedAt`。历史导入标记原来源；市场首次登记标记 `market_new`。建立姓名、标准化手机号、住院号和患者 ID 查询索引。
 
 ### `hospital_encounters`
 
@@ -93,7 +96,7 @@
 
 ### `hospital_preadmissions`
 
-`recordId`、`clientSubmissionId`、`patientId`、`patientSnapshot`、`contactPhone`、`plannedAdmissionDate`、`intendedDepartment`、`mainProblem`、`contactResult`、`notes`、`createdByUid`、`createdByName`、`createdAt`、`updatedAt`、`notificationStatus` (`pending`/`sent`/`failed`/`not_configured`)、`notificationAttempts`、`lastNotificationAt`、`lastNotificationErrorCode`。
+`recordId`、`clientSubmissionId`、`patientId`、`patientSnapshot`、`contactPhone`、`plannedAdmissionDate`、`intendedDepartment`、`mainProblem`、`contactResult`、`notes`、`createdByUid`、`createdByName`、`createdAt`、`updatedAt`、`notificationStatus` (`pending`/`sending`/`sent`/`failed`/`not_configured`/`delivery_unknown`)、`notificationAttempts`、`lastNotificationAt`、`lastNotificationErrorCode`。
 
 ### `hospital_preadmission_notification_logs`
 

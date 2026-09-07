@@ -30,19 +30,38 @@ def text(value: Any) -> str:
     return str(value or "").strip()
 
 
-def iso_date(value: Any) -> str:
-    candidate = text(value)[:10]
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", candidate):
+def validated_date(value: Any, label: str, *, required: bool = False) -> str:
+    raw = text(value)
+    if not raw:
+        if required:
+            raise ValueError(f"{label} is required")
         return ""
+    candidate = raw[:10]
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", candidate):
+        raise ValueError(f"invalid {label}")
     try:
         datetime.strptime(candidate, "%Y-%m-%d")
     except ValueError:
-        return ""
+        raise ValueError(f"invalid {label}") from None
     return candidate
 
 
 def normalized_phone(value: Any) -> str:
-    return re.sub(r"\s+", "", text(value))
+    phone = re.sub(r"[\s()\-]", "", text(value))
+    if phone.startswith("0086") and re.fullmatch(r"00861\d{10}", phone):
+        return phone[4:]
+    if phone.startswith("+86") and re.fullmatch(r"\+861\d{10}", phone):
+        return phone[3:]
+    return phone
+
+
+def require_unique(records: Iterable[dict[str, Any]], field: str) -> None:
+    seen: set[str] = set()
+    for record in records:
+        value = text(record.get(field))
+        if not value or value in seen:
+            raise ValueError(f"duplicate {field}")
+        seen.add(value)
 
 
 def write_jsonl(path: Path, records: Iterable[dict[str, Any]]) -> int:
@@ -95,6 +114,14 @@ def export_data(source: Path | str, output: Path | str) -> dict[str, Any]:
     if orphan_encounters or orphan_diagnoses:
         raise ValueError("source contains patient-history rows without a valid patient")
 
+    for patient in raw_patients:
+        if not text(patient["name"]):
+            raise ValueError("patient name is required")
+        if not text(patient["patient_code"]):
+            raise ValueError("patient code is required")
+        if patient["age"] is not None and not 0 <= int(patient["age"]) <= 120:
+            raise ValueError("patient age is outside 0-120")
+
     name_counts = Counter(text(patient["name"]) for patient in raw_patients if text(patient["name"]))
     phone_counts = Counter(normalized_phone(patient["phone"]) for patient in raw_patients if normalized_phone(patient["phone"]))
     hospital_patients: dict[str, set[int]] = defaultdict(set)
@@ -114,8 +141,8 @@ def export_data(source: Path | str, output: Path | str) -> dict[str, Any]:
             exported_encounters.append({
                 "encounterId": text(encounter["encounter_key"]) or f"E-{encounter['id']}",
                 "patientId": f"P-{patient_id}",
-                "admissionDate": iso_date(encounter["admission_datetime"]),
-                "dischargeDate": iso_date(encounter["discharge_datetime"]),
+                "admissionDate": validated_date(encounter["admission_datetime"], "admission date", required=True),
+                "dischargeDate": validated_date(encounter["discharge_datetime"], "discharge date"),
                 "department": text(encounter["department"]) or text(encounter["ward"]),
                 "mainDiagnosis": main_diagnosis,
                 "sequence": sequence,
@@ -158,8 +185,8 @@ def export_data(source: Path | str, output: Path | str) -> dict[str, Any]:
             "admissionCount": len(patient_encounters),
             "identityRisk": bool(reasons),
             "identityRiskReasons": reasons,
-            "latestAdmissionDate": iso_date(latest["admission_datetime"]) if latest else "",
-            "latestDischargeDate": iso_date(latest["discharge_datetime"]) if latest else "",
+            "latestAdmissionDate": validated_date(latest["admission_datetime"], "admission date", required=True) if latest else "",
+            "latestDischargeDate": validated_date(latest["discharge_datetime"], "discharge date") if latest else "",
             "latestDiagnosis": latest_diagnosis or text(patient["summary_main_disease"]),
             "updatedAt": datetime.now(timezone.utc).isoformat(),
         })
@@ -168,8 +195,11 @@ def export_data(source: Path | str, output: Path | str) -> dict[str, Any]:
         "patientId": f"P-{int(row['patient_id'])}",
         "diagnosis": text(row["diagnosis"]),
         "count": max(0, int(row["count"] or 0)),
-        "lastAdmissionDate": iso_date(row["last_date"]),
+        "lastAdmissionDate": validated_date(row["last_date"], "diagnosis date"),
     } for row in raw_diagnoses]
+
+    require_unique(exported_patients, "patientId")
+    require_unique(exported_encounters, "encounterId")
 
     output_files = {
         "patients.jsonl": exported_patients,

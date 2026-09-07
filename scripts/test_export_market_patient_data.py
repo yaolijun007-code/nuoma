@@ -57,6 +57,12 @@ class MarketPatientExportTest(unittest.TestCase):
     def read_jsonl(self, name):
         return [json.loads(line) for line in (self.root / "out" / name).read_text(encoding="utf-8").splitlines()]
 
+    def execute(self, sql, parameters=()):
+        connection = sqlite3.connect(self.source)
+        connection.execute(sql, parameters)
+        connection.commit()
+        connection.close()
+
     def test_exports_only_the_minimum_market_dataset(self):
         manifest = export_data(self.source, self.root / "out")
         self.assertEqual(manifest["counts"], {"patients": 2, "encounters": 3, "diagnosisStats": 2})
@@ -83,6 +89,31 @@ class MarketPatientExportTest(unittest.TestCase):
         self.assertEqual(self.source.read_bytes(), before)
         self.assertEqual(len(manifest["sourceSha256"]), 64)
         self.assertEqual(set(manifest["files"]), {"patients.jsonl", "encounters.jsonl", "diagnosis_stats.jsonl"})
+
+    def test_rejects_a_nonempty_invalid_admission_date(self):
+        self.execute("UPDATE encounters SET admission_datetime=? WHERE id=1", ("2026-02-30 08:00",))
+        with self.assertRaisesRegex(ValueError, "invalid admission date"):
+            export_data(self.source, self.root / "out")
+
+    def test_rejects_duplicate_exported_encounter_ids(self):
+        self.execute("UPDATE encounters SET encounter_key='E-1' WHERE id=2")
+        with self.assertRaisesRegex(ValueError, "duplicate encounterId"):
+            export_data(self.source, self.root / "out")
+
+    def test_rejects_a_missing_patient_name(self):
+        self.execute("UPDATE patients SET name='' WHERE id=1")
+        with self.assertRaisesRegex(ValueError, "patient name is required"):
+            export_data(self.source, self.root / "out")
+
+    def test_rejects_an_invalid_patient_age(self):
+        self.execute("UPDATE patients SET age=141 WHERE id=1")
+        with self.assertRaisesRegex(ValueError, "patient age is outside"):
+            export_data(self.source, self.root / "out")
+
+    def test_normalizes_common_china_phone_formatting(self):
+        self.execute("UPDATE patients SET phone=? WHERE id=1", ("+86 138-0013-8000",))
+        export_data(self.source, self.root / "out")
+        self.assertEqual(self.read_jsonl("patients.jsonl")[0]["phone"], "13800138000")
 
 
 if __name__ == "__main__":

@@ -99,6 +99,38 @@ describe("market preadmission app", () => {
     expect(screen.queryByText(/费用|地址|医保/)).not.toBeInTheDocument();
   });
 
+  it("lets staff register a new patient without historical admissions", async () => {
+    const user = userEvent.setup();
+    const newRecord = {
+      ...failedRecord,
+      patientId: "N-AD1A5D267F3D4A818230FC7F",
+      patientName: "李四",
+      contactPhone: "13900139000",
+      notificationStatus: "sent" as const,
+      patientSnapshot: { patientCode: "N-AD1A5D267F3D4A818230FC7F", hospitalNo: "", sex: "女", age: 47, admissionCount: 0 },
+    };
+    const api = fakeApi({ createPreadmission: vi.fn().mockResolvedValue(newRecord) });
+    render(<MarketPreadmissionApp api={api} />);
+    await screen.findByText("市场一组");
+    await user.click(screen.getByRole("button", { name: "新患者首次登记" }));
+    await user.type(screen.getByLabelText("新患者姓名"), "李四");
+    await user.type(screen.getByLabelText("新患者联系电话"), "13900139000");
+    await user.selectOptions(screen.getByLabelText("新患者性别"), "女");
+    await user.type(screen.getByLabelText("新患者年龄"), "47");
+    await user.click(screen.getByRole("button", { name: "继续填写预住院信息" }));
+    expect(await screen.findByText("暂无既往住院记录，新患者档案将在提交时建立")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("计划住院日期"), { target: { value: "2026-09-20" } });
+    await user.type(screen.getByLabelText("拟入科室"), "消化内科");
+    await user.type(screen.getByLabelText("主要问题"), "反复腹胀，希望进一步评估");
+    await user.selectOptions(screen.getByLabelText("联系结果"), "patient_interested");
+    await user.click(screen.getByRole("button", { name: "保存并推送到企业微信群" }));
+    expect(api.createPreadmission).toHaveBeenCalledWith(expect.objectContaining({
+      patientId: "",
+      contactPhone: "13900139000",
+      newPatient: { name: "李四", sex: "女", age: 47 },
+    }));
+  });
+
   it("saves a preadmission, reports notification failure, and permits retry", async () => {
     const user = userEvent.setup();
     const api = fakeApi();
@@ -120,6 +152,28 @@ describe("market preadmission app", () => {
     expect(api.retryNotification).toHaveBeenCalledWith("PY-20260907-0001");
   });
 
+  it("locks a saved registration so a second click cannot create or send it again", async () => {
+    const user = userEvent.setup();
+    const sentRecord = { ...failedRecord, notificationStatus: "sent" as const };
+    const api = fakeApi({ createPreadmission: vi.fn().mockResolvedValue(sentRecord) });
+    render(<MarketPreadmissionApp api={api} />);
+    await screen.findByText("市场一组");
+    await user.type(screen.getByLabelText("患者姓名、手机号或住院号"), "张三");
+    await user.click(screen.getByRole("button", { name: "查询" }));
+    await user.click(await screen.findByRole("button", { name: /选择患者 张三/ }));
+    fireEvent.change(screen.getByLabelText("计划住院日期"), { target: { value: "2026-09-20" } });
+    await user.type(screen.getByLabelText("拟入科室"), "消化内科");
+    await user.type(screen.getByLabelText("主要问题"), "反复腹胀，希望进一步评估");
+    await user.selectOptions(screen.getByLabelText("联系结果"), "patient_interested");
+    const submit = screen.getByRole("button", { name: "保存并推送到企业微信群" });
+    await user.click(submit);
+    expect(await screen.findByText("已推送")).toBeInTheDocument();
+    expect(submit).toBeDisabled();
+    await user.click(submit);
+    expect(api.createPreadmission).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "开始下一位患者" })).toBeEnabled();
+  });
+
   it("shows the current user's recent registrations in a compact list", async () => {
     const user = userEvent.setup();
     const api = fakeApi({ listPreadmissions: vi.fn().mockResolvedValue([failedRecord]) });
@@ -129,5 +183,30 @@ describe("market preadmission app", () => {
     expect(await screen.findByText("PY-20260907-0001")).toBeInTheDocument();
     expect(screen.getByText("2026-09-20")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "重新推送 张三" })).toBeEnabled();
+  });
+
+  it("shows a retryable error instead of presenting a failed records request as empty", async () => {
+    const user = userEvent.setup();
+    const api = fakeApi({ listPreadmissions: vi.fn().mockRejectedValue(new Error("network")) });
+    render(<MarketPreadmissionApp api={api} />);
+    await screen.findByText("市场一组");
+    await user.click(screen.getByRole("button", { name: "我的登记" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("登记记录加载失败");
+    expect(screen.getByRole("button", { name: "重新加载登记记录" })).toBeEnabled();
+    expect(screen.queryByText("还没有登记记录")).not.toBeInTheDocument();
+  });
+
+  it("clears patient information locally even if remote logout fails", async () => {
+    const user = userEvent.setup();
+    const api = fakeApi({ logout: vi.fn().mockRejectedValue(new Error("network")) });
+    render(<MarketPreadmissionApp api={api} />);
+    await screen.findByText("市场一组");
+    await user.type(screen.getByLabelText("患者姓名、手机号或住院号"), "张三");
+    await user.click(screen.getByRole("button", { name: "查询" }));
+    await user.click(await screen.findByRole("button", { name: /选择患者 张三/ }));
+    expect(await screen.findByText("共住院 3 次")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "退出登录" }));
+    expect(await screen.findByLabelText("账号")).toBeInTheDocument();
+    expect(screen.queryByText("共住院 3 次")).not.toBeInTheDocument();
   });
 });

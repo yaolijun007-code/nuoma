@@ -1,6 +1,6 @@
 export type MarketRole = "market" | "admin";
 export type PatientQueryKind = "name" | "phone" | "hospitalNo" | "patientId";
-export type NotificationStatus = "pending" | "sent" | "failed" | "not_configured";
+export type NotificationStatus = "pending" | "sending" | "sent" | "failed" | "not_configured" | "delivery_unknown";
 export type ContactResult = "patient_interested" | "family_interested" | "considering" | "no_answer" | "declined" | "other";
 
 export interface MarketUser {
@@ -47,6 +47,12 @@ export interface PatientHistory {
   diagnoses: DiagnosisStat[];
 }
 
+export interface NewPatientDraft {
+  name: string;
+  sex: string;
+  age: number | null;
+}
+
 export interface PreadmissionDraft {
   clientSubmissionId: string;
   patientId: string;
@@ -56,6 +62,7 @@ export interface PreadmissionDraft {
   mainProblem: string;
   contactResult: ContactResult;
   notes: string;
+  newPatient?: NewPatientDraft;
 }
 
 export interface PreadmissionRecord {
@@ -87,6 +94,10 @@ export interface PreadmissionRecord {
   lastNotificationAt?: string;
   lastNotificationErrorCode?: string;
 }
+
+export type PreadmissionListItem = Pick<PreadmissionRecord,
+  "recordId" | "patientName" | "plannedAdmissionDate" | "contactResult" | "createdAt" | "notificationStatus"
+>;
 
 export interface PreadmissionMessageModel {
   recordId: string;
@@ -159,7 +170,20 @@ export function validatePreadmissionDraft(input: PreadmissionDraft): Preadmissio
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientSubmissionId)) {
     throw new Error("提交标识无效，请刷新页面后重试");
   }
-  const patientId = requiredText(input?.patientId, "患者标识", 64);
+  const patientId = optionalText(input?.patientId, "患者标识", 64);
+  let newPatient: NewPatientDraft | undefined;
+  if (input?.newPatient) {
+    const name = requiredText(input.newPatient.name, "新患者姓名", 40);
+    const sex = optionalText(input.newPatient.sex, "新患者性别", 10);
+    if (sex && !["男", "女", "其他", "不详"].includes(sex)) throw new Error("新患者性别无效");
+    const age = input.newPatient.age === null || input.newPatient.age === undefined
+      ? null
+      : Number(input.newPatient.age);
+    if (age !== null && (!Number.isInteger(age) || age < 0 || age > 120)) throw new Error("新患者年龄应为 0 至 120 岁");
+    newPatient = { name, sex, age };
+  }
+  if (!patientId && !newPatient) throw new Error("请选择历史患者或填写新患者资料");
+  if (patientId && newPatient) throw new Error("历史患者与新患者资料不能同时提交");
   const contactPhone = String(input?.contactPhone ?? "").replace(/\s+/g, "").trim();
   if (!/^[0-9+()\-]{5,30}$/.test(contactPhone)) throw new Error("联系方式格式不正确");
   const plannedAdmissionDate = String(input?.plannedAdmissionDate ?? "").trim();
@@ -179,6 +203,7 @@ export function validatePreadmissionDraft(input: PreadmissionDraft): Preadmissio
     mainProblem,
     contactResult,
     notes,
+    ...(newPatient ? { newPatient } : {}),
   };
 }
 
@@ -233,6 +258,8 @@ export function notificationStatusLabel(status: NotificationStatus) {
     failed: "登记已保存，群推送失败",
     not_configured: "登记已保存，群机器人未配置",
     pending: "登记已保存，等待推送",
+    sending: "群推送处理中，请勿重复操作",
+    delivery_unknown: "群端结果待人工核对，请勿直接重试",
   };
   return labels[status];
 }

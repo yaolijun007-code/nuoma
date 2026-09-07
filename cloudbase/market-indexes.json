@@ -1,0 +1,28 @@
+{
+  "hospital_market_users": [
+    { "name": "uid_unique", "fields": [{ "field": "uid", "order": "asc" }], "unique": true }
+  ],
+  "hospital_patients": [
+    { "name": "patient_id_unique", "fields": [{ "field": "patientId", "order": "asc" }], "unique": true },
+    { "name": "name", "fields": [{ "field": "name", "order": "asc" }], "unique": false },
+    { "name": "phone", "fields": [{ "field": "phone", "order": "asc" }], "unique": false },
+    { "name": "hospital_no", "fields": [{ "field": "hospitalNo", "order": "asc" }], "unique": false }
+  ],
+  "hospital_encounters": [
+    { "name": "patient_id", "fields": [{ "field": "patientId", "order": "asc" }], "unique": false }
+  ],
+  "hospital_diagnosis_stats": [
+    { "name": "patient_id", "fields": [{ "field": "patientId", "order": "asc" }], "unique": false }
+  ],
+  "hospital_preadmissions": [
+    { "name": "record_id_unique", "fields": [{ "field": "recordId", "order": "asc" }], "unique": true },
+    { "name": "submission_id_unique", "fields": [{ "field": "clientSubmissionId", "order": "asc" }], "unique": true },
+    { "name": "creator_created_at", "fields": [{ "field": "createdByUid", "order": "asc" }, { "field": "createdAt", "order": "desc" }], "unique": false }
+  ],
+  "hospital_preadmission_notification_logs": [
+    { "name": "record_created_at", "fields": [{ "field": "recordId", "order": "asc" }, { "field": "createdAt", "order": "desc" }], "unique": false }
+  ],
+  "hospital_market_audit_logs": [
+    { "name": "uid_created_at", "fields": [{ "field": "uid", "order": "asc" }, { "field": "createdAt", "order": "desc" }], "unique": false }
+  ]
+}

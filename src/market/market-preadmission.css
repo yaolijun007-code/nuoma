@@ -114,6 +114,12 @@
   .market-alert { display: flex; align-items: flex-start; gap: 9px; margin-top: 16px; padding: 12px 14px; border: 1px solid; font-size: 14px; line-height: 1.55; }
   .market-alert.error { border-color: #edc0be; background: var(--market-red-pale); color: var(--market-red); }
   .market-alert.warning { border-color: #ead29c; background: var(--market-amber-pale); color: var(--market-amber); }
+  .market-alert.info { border-color: #afd8d3; background: var(--market-teal-pale); color: var(--market-teal-dark); }
+  .new-patient-entry { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--market-line); color: var(--market-muted); font-size: 14px; }
+  .new-patient-form { margin-top: 20px; padding: 20px; border: 1px solid var(--market-line); background: var(--market-soft); }
+  .new-patient-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+  .new-patient-actions { display: flex; align-items: center; justify-content: flex-end; gap: 18px; margin-top: 20px; }
+  .new-patient-actions .market-text-button { margin: 0; }
   .candidate-results { margin-top: 24px; border-top: 1px solid var(--market-line); padding-top: 20px; }
   .results-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
   .results-heading span { color: var(--market-muted); font-size: 13px; }
@@ -166,13 +172,16 @@
   .submission-result > div { display: flex; align-items: center; gap: 11px; }
   .submission-result strong, .submission-result span { display: block; }
   .submission-result span { margin-top: 4px; font-size: 12px; opacity: .78; }
+  .submission-result-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
   .result-sent { border-color: #b9dbc6; background: var(--market-green-pale); color: var(--market-green); }
   .result-failed, .result-not_configured { border-color: #edc0be; background: var(--market-red-pale); color: var(--market-red); }
-  .result-pending { border-color: #ead29c; background: var(--market-amber-pale); color: var(--market-amber); }
+  .result-pending, .result-sending, .result-delivery_unknown { border-color: #ead29c; background: var(--market-amber-pale); color: var(--market-amber); }
   .market-secondary-button { padding: 0 15px; border: 1px solid currentColor; background: #fff; color: inherit; border-radius: 7px; }
   .floating-error { position: sticky; bottom: 16px; z-index: 10; box-shadow: var(--market-shadow); }
 
   .records-list { border-top: 1px solid var(--market-line); }
+  .records-error { align-items: center; justify-content: space-between; }
+  .records-error > span { flex: 1; }
   .record-row { min-height: 82px; display: grid; grid-template-columns: minmax(160px, 1.15fr) repeat(3, minmax(110px, .8fr)) minmax(140px, auto) 44px; align-items: center; gap: 16px; padding: 14px 4px; border-bottom: 1px solid var(--market-line); }
   .record-row strong, .record-row span, .record-row small { display: block; }
   .record-row > div:first-child span, .record-row small { margin-top: 4px; color: var(--market-muted); font-size: 12px; }
@@ -180,7 +189,7 @@
   .status-badge { width: fit-content; padding: 6px 9px; font-size: 12px; font-weight: 700; }
   .status-sent { background: var(--market-green-pale); color: var(--market-green); }
   .status-failed { background: var(--market-red-pale); color: var(--market-red); }
-  .status-not-configured, .status-pending { background: var(--market-amber-pale); color: var(--market-amber); }
+  .status-not-configured, .status-pending, .status-sending, .status-delivery-unknown { background: var(--market-amber-pale); color: var(--market-amber); }
   .market-icon-button { width: 44px; padding: 0; border: 1px solid var(--market-line); background: #fff; color: var(--market-teal); border-radius: 7px; }
   .market-empty { min-height: 250px; display: grid; place-content: center; justify-items: center; color: var(--market-muted); text-align: center; }
   .market-empty strong { margin-top: 12px; color: var(--market-ink); }
@@ -211,6 +220,9 @@
     .section-heading > p { margin-top: 7px; }
     .search-row { grid-template-columns: 1fr; }
     .search-row .market-primary-button { width: 100%; }
+    .new-patient-entry, .new-patient-actions { align-items: stretch; flex-direction: column; }
+    .new-patient-grid { grid-template-columns: 1fr; }
+    .new-patient-actions .market-primary-button, .new-patient-entry .market-secondary-button { width: 100%; }
     .results-heading { display: block; }
     .results-heading span { display: block; margin-top: 5px; }
     .patient-candidate { grid-template-columns: 1fr; }
@@ -222,7 +234,7 @@
     .encounter-dates { grid-column: 1 / -1; grid-template-columns: 1fr; padding-left: 70px; }
     .preadmission-form { grid-template-columns: 1fr; }
     .form-wide { grid-column: auto; }
-    .form-actions, .submission-result { align-items: stretch; flex-direction: column; }
+    .form-actions, .submission-result, .submission-result-actions { align-items: stretch; flex-direction: column; }
     .form-actions .market-primary-button, .submission-result .market-secondary-button { width: 100%; }
     .record-row { grid-template-columns: 1fr auto 44px; gap: 9px; }
     .record-row > div:nth-child(2) { display: none; }

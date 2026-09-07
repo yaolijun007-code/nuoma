@@ -15,6 +15,7 @@ import {
 } from "./service";
 
 const user: MarketUser = { uid: "uid-market", username: "sc01", displayName: "市场一组", role: "market" };
+const otherUser: MarketUser = { uid: "uid-other", username: "sc02", displayName: "市场二组", role: "market" };
 const admin: MarketUser = { uid: "uid-admin", username: "admin01", displayName: "系统管理员", role: "admin" };
 const history: PatientHistory = {
   patient: {
@@ -49,19 +50,38 @@ const draft = {
 };
 
 class MemoryRepository implements MarketRepository {
-  users = new Map([[user.uid, user], [admin.uid, admin]]);
+  users = new Map([[user.uid, user], [otherUser.uid, otherUser], [admin.uid, admin]]);
   records: PreadmissionRecord[] = [];
   audits: AuditEntry[] = [];
   notifications: NotificationLog[] = [];
+  newPatients: PatientHistory["patient"][] = [];
 
   async findActiveUser(uid: string) { return this.users.get(uid) ?? null; }
   async searchPatients() { return [history.patient]; }
   async getPatientHistory(patientId: string) { return patientId === history.patient.patientId ? history : null; }
+  async createNewPatientIfAbsent(patient: PatientHistory["patient"]) {
+    const existing = this.newPatients.find((item) => item.patientId === patient.patientId);
+    if (existing) return existing;
+    this.newPatients.push(patient);
+    return patient;
+  }
   async findPreadmissionBySubmissionId(clientSubmissionId: string) {
     return this.records.find((record) => record.clientSubmissionId === clientSubmissionId) ?? null;
   }
-  async createPreadmission(record: PreadmissionRecord) { this.records.push(record); return record; }
+  async createPreadmissionIfAbsent(record: PreadmissionRecord) {
+    const existing = this.records.find((item) => item.clientSubmissionId === record.clientSubmissionId);
+    if (existing) return { record: existing, created: false };
+    this.records.push(record);
+    return { record, created: true };
+  }
   async getPreadmission(recordId: string) { return this.records.find((record) => record.recordId === recordId) ?? null; }
+  async claimNotification(recordId: string, expectedAttempts: number, update: Parameters<MarketRepository["claimNotification"]>[2]) {
+    const index = this.records.findIndex((record) => record.recordId === recordId);
+    const current = this.records[index];
+    if (!current || current.notificationAttempts !== expectedAttempts || !["pending", "failed", "not_configured"].includes(current.notificationStatus)) return null;
+    this.records[index] = { ...current, ...update };
+    return this.records[index];
+  }
   async updateNotification(recordId: string, update: Pick<PreadmissionRecord, "notificationStatus" | "notificationAttempts" | "lastNotificationAt" | "lastNotificationErrorCode" | "updatedAt">) {
     const index = this.records.findIndex((record) => record.recordId === recordId);
     this.records[index] = { ...this.records[index], ...update };
@@ -88,9 +108,28 @@ function makeService(repository = new MemoryRepository(), notificationStatus: No
 
 describe("market preadmission service", () => {
   it("rejects anonymous and disabled users", async () => {
-    const { service } = makeService();
-    await expect(service.searchPatients("", "张三")).rejects.toMatchObject({ code: "AUTH_REQUIRED" });
-    await expect(service.searchPatients("uid-disabled", "张三")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const { service, repository } = makeService();
+    await expect(service.searchPatients("", "张三", "req-anonymous")).rejects.toMatchObject({ code: "AUTH_REQUIRED" });
+    await expect(service.searchPatients("uid-disabled", "张三", "req-disabled")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repository.audits).toEqual(expect.arrayContaining([
+      expect.objectContaining({ uid: "anonymous", action: "patient_search", result: "denied", requestId: "req-anonymous" }),
+      expect.objectContaining({ uid: "uid-disabled", action: "patient_search", result: "denied", requestId: "req-disabled" }),
+    ]));
+    expect(JSON.stringify(repository.audits)).not.toContain("张三");
+  });
+
+  it("maps an invalid patient query to INVALID_INPUT and audits it without raw input", async () => {
+    const { service, repository } = makeService();
+    await expect(service.searchPatients(user.uid, "<invalid patient query>", "req-invalid"))
+      .rejects.toMatchObject({ code: "INVALID_INPUT" });
+    expect(repository.audits.at(-1)).toMatchObject({
+      uid: user.uid,
+      action: "patient_search",
+      result: "invalid",
+      requestId: "req-invalid",
+      detail: "query:invalid",
+    });
+    expect(JSON.stringify(repository.audits)).not.toContain("invalid patient query");
   });
 
   it("normalizes patient searches and records a non-sensitive audit descriptor", async () => {
@@ -116,12 +155,42 @@ describe("market preadmission service", () => {
     expect(repository.notifications[0]).toMatchObject({ recordId: "PY-20260907-0001", status: "sent", attempt: 1 });
   });
 
+  it("creates a searchable zero-history profile for a new patient and registers the preadmission", async () => {
+    const { service, repository, send } = makeService();
+    const result = await service.createPreadmission(user.uid, {
+      ...draft,
+      patientId: "",
+      contactPhone: "13900139000",
+      newPatient: { name: "李四", sex: "女", age: 47 },
+    });
+    expect(repository.newPatients).toHaveLength(1);
+    expect(repository.newPatients[0]).toMatchObject({
+      name: "李四",
+      phone: "13900139000",
+      admissionCount: 0,
+      hospitalNo: "",
+    });
+    expect(result).toMatchObject({ patientName: "李四", notificationStatus: "sent" });
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ patientName: "李四", contactPhone: "13900139000", admissionCount: 0 }), expect.any(String));
+  });
+
   it("returns the existing sent record for a duplicate submission without resending", async () => {
     const { service, repository, send } = makeService();
     const first = await service.createPreadmission(user.uid, draft);
     const duplicate = await service.createPreadmission(user.uid, draft);
     expect(duplicate.recordId).toBe(first.recordId);
     expect(repository.records).toHaveLength(1);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("creates only one record and one notification for concurrent duplicate submissions", async () => {
+    const { service, repository, send } = makeService();
+    const [first, second] = await Promise.all([
+      service.createPreadmission(user.uid, draft),
+      service.createPreadmission(user.uid, draft),
+    ]);
+    expect(repository.records).toHaveLength(1);
+    expect(first.recordId).toBe(second.recordId);
     expect(send).toHaveBeenCalledTimes(1);
   });
 
@@ -143,13 +212,67 @@ describe("market preadmission service", () => {
     expect(retried.notificationStatus).toBe("sent");
     await success.service.retryNotification(admin.uid, saved.recordId);
     expect(success.send).toHaveBeenCalledTimes(1);
-    await expect(success.service.retryNotification("uid-other", saved.recordId)).rejects.toBeInstanceOf(MarketServiceError);
+    await expect(success.service.retryNotification(otherUser.uid, saved.recordId, "req-denied-retry")).rejects.toBeInstanceOf(MarketServiceError);
+    expect(repository.audits.at(-1)).toMatchObject({
+      uid: otherUser.uid,
+      action: "notification_retry",
+      result: "denied",
+      requestId: "req-denied-retry",
+    });
+  });
+
+  it("does not mark a delivered message as failed when the sent-state write fails", async () => {
+    class SentStateFailureRepository extends MemoryRepository {
+      override async updateNotification(recordId: string, update: Parameters<MarketRepository["updateNotification"]>[1]) {
+        if (update.notificationStatus === "sent") throw new Error("database unavailable after delivery");
+        return super.updateNotification(recordId, update);
+      }
+    }
+    const repository = new SentStateFailureRepository();
+    const attempt = makeService(repository, "sent");
+    const result = await attempt.service.createPreadmission(user.uid, draft);
+    expect(result.notificationStatus).toBe("delivery_unknown");
+    expect(repository.records[0].notificationStatus).toBe("sending");
+    await attempt.service.retryNotification(user.uid, result.recordId);
+    expect(attempt.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows only one sender to claim two concurrent retries", async () => {
+    const repository = new MemoryRepository();
+    const failed = makeService(repository, new Error("timeout"));
+    const saved = await failed.service.createPreadmission(user.uid, draft);
+    const success = makeService(repository, "sent");
+    await Promise.all([
+      success.service.retryNotification(user.uid, saved.recordId),
+      success.service.retryNotification(user.uid, saved.recordId),
+    ]);
+    expect(success.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a sent state when notification logging fails", async () => {
+    class LogFailureRepository extends MemoryRepository {
+      override async writeNotificationLog() { throw new Error("log unavailable"); }
+    }
+    const repository = new LogFailureRepository();
+    const attempt = makeService(repository, "sent");
+    const result = await attempt.service.createPreadmission(user.uid, draft);
+    expect(result.notificationStatus).toBe("sent");
+    expect(repository.records[0].notificationStatus).toBe("sent");
   });
 
   it("limits market lists to the current creator while admins can list all", async () => {
     const { service, repository } = makeService();
     await service.createPreadmission(user.uid, draft);
-    expect(await service.listPreadmissions(user.uid, 200)).toHaveLength(1);
+    const listed = await service.listPreadmissions(user.uid, 200);
+    expect(listed).toHaveLength(1);
+    expect(Object.keys(listed[0]).sort()).toEqual([
+      "contactResult",
+      "createdAt",
+      "notificationStatus",
+      "patientName",
+      "plannedAdmissionDate",
+      "recordId",
+    ]);
     expect(await service.listPreadmissions(admin.uid, 200)).toHaveLength(1);
     expect(repository.audits.at(-1)?.action).toBe("preadmission_list");
   });

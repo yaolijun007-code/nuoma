@@ -49,6 +49,19 @@ describe("market preadmission domain", () => {
     expect(validatePreadmissionDraft({ ...validDraft, notes: "  上午联系方便  " }).notes).toBe("上午联系方便");
   });
 
+  it("accepts a validated new-patient profile when no historical patient was selected", () => {
+    expect(validatePreadmissionDraft({
+      ...validDraft,
+      patientId: "",
+      newPatient: { name: " 李四 ", sex: "女", age: 47 },
+    })).toMatchObject({
+      patientId: "",
+      newPatient: { name: "李四", sex: "女", age: 47 },
+    });
+    expect(() => validatePreadmissionDraft({ ...validDraft, patientId: "", newPatient: undefined }))
+      .toThrow("请选择历史患者或填写新患者资料");
+  });
+
   it("rejects missing, malformed, and excessive form values", () => {
     expect(() => validatePreadmissionDraft({ ...validDraft, plannedAdmissionDate: "" })).toThrow("请选择计划住院日期");
     expect(() => validatePreadmissionDraft({ ...validDraft, contactPhone: "abc" })).toThrow("联系方式格式不正确");

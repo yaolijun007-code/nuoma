@@ -68,7 +68,18 @@ function validatePreadmissionDraft(input) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientSubmissionId)) {
     throw new Error("\u63D0\u4EA4\u6807\u8BC6\u65E0\u6548\uFF0C\u8BF7\u5237\u65B0\u9875\u9762\u540E\u91CD\u8BD5");
   }
-  const patientId = requiredText(input?.patientId, "\u60A3\u8005\u6807\u8BC6", 64);
+  const patientId = optionalText(input?.patientId, "\u60A3\u8005\u6807\u8BC6", 64);
+  let newPatient;
+  if (input?.newPatient) {
+    const name = requiredText(input.newPatient.name, "\u65B0\u60A3\u8005\u59D3\u540D", 40);
+    const sex = optionalText(input.newPatient.sex, "\u65B0\u60A3\u8005\u6027\u522B", 10);
+    if (sex && !["\u7537", "\u5973", "\u5176\u4ED6", "\u4E0D\u8BE6"].includes(sex)) throw new Error("\u65B0\u60A3\u8005\u6027\u522B\u65E0\u6548");
+    const age = input.newPatient.age === null || input.newPatient.age === void 0 ? null : Number(input.newPatient.age);
+    if (age !== null && (!Number.isInteger(age) || age < 0 || age > 120)) throw new Error("\u65B0\u60A3\u8005\u5E74\u9F84\u5E94\u4E3A 0 \u81F3 120 \u5C81");
+    newPatient = { name, sex, age };
+  }
+  if (!patientId && !newPatient) throw new Error("\u8BF7\u9009\u62E9\u5386\u53F2\u60A3\u8005\u6216\u586B\u5199\u65B0\u60A3\u8005\u8D44\u6599");
+  if (patientId && newPatient) throw new Error("\u5386\u53F2\u60A3\u8005\u4E0E\u65B0\u60A3\u8005\u8D44\u6599\u4E0D\u80FD\u540C\u65F6\u63D0\u4EA4");
   const contactPhone = String(input?.contactPhone ?? "").replace(/\s+/g, "").trim();
   if (!/^[0-9+()\-]{5,30}$/.test(contactPhone)) throw new Error("\u8054\u7CFB\u65B9\u5F0F\u683C\u5F0F\u4E0D\u6B63\u786E");
   const plannedAdmissionDate = String(input?.plannedAdmissionDate ?? "").trim();
@@ -87,7 +98,8 @@ function validatePreadmissionDraft(input) {
     intendedDepartment,
     mainProblem,
     contactResult,
-    notes
+    notes,
+    ...newPatient ? { newPatient } : {}
   };
 }
 function shortDate(value) {
@@ -144,8 +156,19 @@ function defaultRecordId(now) {
   const date = now.toISOString().slice(0, 10).replaceAll("-", "");
   return `PY-${date}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 }
+function newPatientId(clientSubmissionId) {
+  return `N-${clientSubmissionId.replaceAll("-", "").slice(0, 24).toUpperCase()}`;
+}
 function auditNow(clock) {
   return clock().toISOString();
+}
+function normalizedRequestId(value) {
+  const requestId = String(value ?? "").replace(/[^A-Za-z0-9_.:-]/g, "").slice(0, 128);
+  return requestId || "unavailable";
+}
+function safeTargetId(value, fallback) {
+  const targetId = String(value ?? "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 80);
+  return targetId || fallback;
 }
 function searchAuditDetail(kind, value) {
   if (kind === "phone") return `phone:*${value.slice(-4)}`;
@@ -178,64 +201,143 @@ function messageModel(record) {
     createdAt: record.createdAt
   };
 }
+function toPreadmissionListItem(record) {
+  return {
+    recordId: record.recordId,
+    patientName: record.patientName,
+    plannedAdmissionDate: record.plannedAdmissionDate,
+    contactResult: record.contactResult,
+    createdAt: record.createdAt,
+    notificationStatus: record.notificationStatus
+  };
+}
 function createMarketPreadmissionService(repository2, notifier, clock = () => /* @__PURE__ */ new Date(), createRecordId = defaultRecordId) {
-  const authorize = async (uid) => {
-    if (!uid) throw new MarketServiceError("AUTH_REQUIRED", "\u8BF7\u5148\u767B\u5F55");
+  const safeWriteAudit = async (entry) => {
+    try {
+      await repository2.writeAudit(entry);
+    } catch {
+    }
+  };
+  const authorize = async (uid, action, targetType, targetId, requestId) => {
+    if (!uid) {
+      await safeWriteAudit({
+        uid: "anonymous",
+        action,
+        targetType,
+        targetId,
+        result: "denied",
+        requestId,
+        createdAt: auditNow(clock)
+      });
+      throw new MarketServiceError("AUTH_REQUIRED", "\u8BF7\u5148\u767B\u5F55");
+    }
     const user = await repository2.findActiveUser(uid);
-    if (!user) throw new MarketServiceError("FORBIDDEN", "\u8D26\u53F7\u672A\u6388\u6743\u6216\u5DF2\u505C\u7528");
+    if (!user) {
+      await safeWriteAudit({
+        uid,
+        action,
+        targetType,
+        targetId,
+        result: "denied",
+        requestId,
+        createdAt: auditNow(clock)
+      });
+      throw new MarketServiceError("FORBIDDEN", "\u8D26\u53F7\u672A\u6388\u6743\u6216\u5DF2\u505C\u7528");
+    }
     return user;
   };
+  const writeNotificationLog = async (entry) => {
+    try {
+      await repository2.writeNotificationLog(entry);
+    } catch {
+    }
+  };
   const notify = async (record) => {
-    if (record.notificationStatus === "sent") return record;
+    if (["sent", "sending", "delivery_unknown"].includes(record.notificationStatus)) return record;
     const now = auditNow(clock);
     const attempt = record.notificationAttempts + 1;
+    const claimed = await repository2.claimNotification(record.recordId, record.notificationAttempts, {
+      notificationStatus: "sending",
+      notificationAttempts: attempt,
+      lastNotificationAt: now,
+      lastNotificationErrorCode: "",
+      updatedAt: now
+    });
+    if (!claimed) return await repository2.getPreadmission(record.recordId) ?? record;
+    let delivery;
     try {
-      const model = messageModel(record);
-      const result = await notifier.send(model, buildPreadmissionMarkdown(model));
+      const model = messageModel(claimed);
+      delivery = await notifier.send(model, buildPreadmissionMarkdown(model));
+    } catch (error) {
+      const errorCode = safeDeliveryCode(error);
+      try {
+        const failed = await repository2.updateNotification(record.recordId, {
+          notificationStatus: "failed",
+          notificationAttempts: attempt,
+          lastNotificationAt: now,
+          lastNotificationErrorCode: errorCode,
+          updatedAt: now
+        });
+        await writeNotificationLog({ recordId: record.recordId, attempt, status: "failed", errorCode, createdAt: now });
+        return failed;
+      } catch {
+        return { ...claimed, notificationStatus: "delivery_unknown", lastNotificationErrorCode: "STATE_WRITE_FAILED" };
+      }
+    }
+    try {
       const updated = await repository2.updateNotification(record.recordId, {
-        notificationStatus: result.status,
+        notificationStatus: delivery.status,
         notificationAttempts: attempt,
         lastNotificationAt: now,
         lastNotificationErrorCode: "",
         updatedAt: now
       });
-      await repository2.writeNotificationLog({
+      await writeNotificationLog({
         recordId: record.recordId,
         attempt,
-        status: result.status,
-        responseCode: result.responseCode,
+        status: delivery.status,
+        responseCode: delivery.responseCode,
         createdAt: now
       });
       return updated;
-    } catch (error) {
-      const errorCode = safeDeliveryCode(error);
-      const updated = await repository2.updateNotification(record.recordId, {
-        notificationStatus: "failed",
-        notificationAttempts: attempt,
-        lastNotificationAt: now,
-        lastNotificationErrorCode: errorCode,
-        updatedAt: now
-      });
-      await repository2.writeNotificationLog({ recordId: record.recordId, attempt, status: "failed", errorCode, createdAt: now });
-      return updated;
+    } catch {
+      return { ...claimed, notificationStatus: "delivery_unknown", lastNotificationErrorCode: "STATE_WRITE_FAILED" };
     }
   };
   return {
-    async getSession(uid) {
-      const user = await authorize(uid);
+    async getSession(uid, rawRequestId = "") {
+      const requestId = normalizedRequestId(rawRequestId);
+      const user = await authorize(uid, "session_get", "user", safeTargetId(uid, "anonymous"), requestId);
       await repository2.writeAudit({
         uid,
         action: "session_get",
         targetType: "user",
         targetId: uid,
         result: "success",
+        requestId,
         createdAt: auditNow(clock)
       });
       return user;
     },
-    async searchPatients(uid, rawQuery) {
-      await authorize(uid);
-      const query = normalizePatientQuery(rawQuery);
+    async searchPatients(uid, rawQuery, rawRequestId = "") {
+      const requestId = normalizedRequestId(rawRequestId);
+      await authorize(uid, "patient_search", "patient", "search", requestId);
+      let query;
+      try {
+        query = normalizePatientQuery(rawQuery);
+      } catch (error) {
+        await safeWriteAudit({
+          uid,
+          action: "patient_search",
+          targetType: "patient",
+          targetId: "search",
+          result: "invalid",
+          detail: "query:invalid",
+          requestId,
+          createdAt: auditNow(clock)
+        });
+        throw new MarketServiceError("INVALID_INPUT", error instanceof Error ? error.message : "\u67E5\u8BE2\u5185\u5BB9\u65E0\u6548");
+      }
       const patients = await repository2.searchPatients(query, 20);
       await repository2.writeAudit({
         uid,
@@ -244,14 +346,27 @@ function createMarketPreadmissionService(repository2, notifier, clock = () => /*
         targetId: "search",
         result: "success",
         detail: searchAuditDetail(query.kind, query.value),
+        requestId,
         createdAt: auditNow(clock)
       });
       return patients;
     },
-    async getPatientHistory(uid, rawPatientId) {
-      await authorize(uid);
+    async getPatientHistory(uid, rawPatientId, rawRequestId = "") {
+      const requestId = normalizedRequestId(rawRequestId);
+      await authorize(uid, "patient_history_view", "patient", safeTargetId(rawPatientId, "invalid"), requestId);
       const patientId = String(rawPatientId ?? "").trim();
-      if (!patientId || patientId.length > 64) throw new MarketServiceError("INVALID_INPUT", "\u60A3\u8005\u6807\u8BC6\u65E0\u6548");
+      if (!patientId || patientId.length > 64) {
+        await safeWriteAudit({
+          uid,
+          action: "patient_history_view",
+          targetType: "patient",
+          targetId: "invalid",
+          result: "invalid",
+          requestId,
+          createdAt: auditNow(clock)
+        });
+        throw new MarketServiceError("INVALID_INPUT", "\u60A3\u8005\u6807\u8BC6\u65E0\u6548");
+      }
       const history = await repository2.getPatientHistory(patientId);
       await repository2.writeAudit({
         uid,
@@ -259,40 +374,80 @@ function createMarketPreadmissionService(repository2, notifier, clock = () => /*
         targetType: "patient",
         targetId: patientId,
         result: history ? "success" : "not_found",
+        requestId,
         createdAt: auditNow(clock)
       });
       if (!history) throw new MarketServiceError("PATIENT_NOT_FOUND", "\u672A\u627E\u5230\u60A3\u8005\u8BB0\u5F55");
       return history;
     },
-    async createPreadmission(uid, rawDraft) {
-      const user = await authorize(uid);
+    async createPreadmission(uid, rawDraft, rawRequestId = "") {
+      const requestId = normalizedRequestId(rawRequestId);
+      const user = await authorize(uid, "preadmission_create", "preadmission", "new", requestId);
       let draft;
       try {
         draft = validatePreadmissionDraft(rawDraft);
       } catch (error) {
+        await safeWriteAudit({
+          uid,
+          action: "preadmission_create",
+          targetType: "preadmission",
+          targetId: "new",
+          result: "invalid",
+          requestId,
+          createdAt: auditNow(clock)
+        });
         throw new MarketServiceError("INVALID_INPUT", error instanceof Error ? error.message : "\u767B\u8BB0\u5185\u5BB9\u65E0\u6548");
       }
       const existing = await repository2.findPreadmissionBySubmissionId(draft.clientSubmissionId);
       if (existing) {
-        if (existing.createdByUid !== uid && user.role !== "admin") throw new MarketServiceError("FORBIDDEN", "\u63D0\u4EA4\u6807\u8BC6\u5DF2\u88AB\u4F7F\u7528");
+        if (existing.createdByUid !== uid && user.role !== "admin") {
+          await safeWriteAudit({
+            uid,
+            action: "preadmission_create",
+            targetType: "preadmission",
+            targetId: existing.recordId,
+            result: "denied",
+            requestId,
+            createdAt: auditNow(clock)
+          });
+          throw new MarketServiceError("FORBIDDEN", "\u63D0\u4EA4\u6807\u8BC6\u5DF2\u88AB\u4F7F\u7528");
+        }
         await repository2.writeAudit({
           uid,
           action: "preadmission_create",
           targetType: "preadmission",
           targetId: existing.recordId,
           result: "duplicate",
+          requestId,
           createdAt: auditNow(clock)
         });
         return existing.notificationStatus === "sent" ? existing : notify(existing);
       }
-      const history = await repository2.getPatientHistory(draft.patientId);
-      if (!history) throw new MarketServiceError("PATIENT_NOT_FOUND", "\u672A\u627E\u5230\u60A3\u8005\u8BB0\u5F55");
       const now = clock();
       const createdAt = now.toISOString();
+      let history;
+      if (draft.newPatient) {
+        const patientId = newPatientId(draft.clientSubmissionId);
+        const patient = await repository2.createNewPatientIfAbsent({
+          patientId,
+          patientCode: patientId,
+          name: draft.newPatient.name,
+          sex: draft.newPatient.sex,
+          age: draft.newPatient.age,
+          phone: draft.contactPhone,
+          hospitalNo: "",
+          admissionCount: 0,
+          identityRisk: false
+        }, uid, createdAt);
+        history = { patient, encounters: [], diagnoses: [] };
+      } else {
+        history = await repository2.getPatientHistory(draft.patientId);
+      }
+      if (!history) throw new MarketServiceError("PATIENT_NOT_FOUND", "\u672A\u627E\u5230\u60A3\u8005\u8BB0\u5F55");
       const record = {
         recordId: createRecordId(now),
         clientSubmissionId: draft.clientSubmissionId,
-        patientId: draft.patientId,
+        patientId: history.patient.patientId,
         patientName: history.patient.name,
         patientSnapshot: {
           patientCode: history.patient.patientCode,
@@ -316,19 +471,46 @@ function createMarketPreadmissionService(repository2, notifier, clock = () => /*
         notificationStatus: "pending",
         notificationAttempts: 0
       };
-      const saved = await repository2.createPreadmission(record);
+      const creation = await repository2.createPreadmissionIfAbsent(record);
+      const saved = creation.record;
+      if (!creation.created) {
+        if (saved.createdByUid !== uid && user.role !== "admin") {
+          await safeWriteAudit({
+            uid,
+            action: "preadmission_create",
+            targetType: "preadmission",
+            targetId: saved.recordId,
+            result: "denied",
+            requestId,
+            createdAt: auditNow(clock)
+          });
+          throw new MarketServiceError("FORBIDDEN", "\u63D0\u4EA4\u6807\u8BC6\u5DF2\u88AB\u4F7F\u7528");
+        }
+        await repository2.writeAudit({
+          uid,
+          action: "preadmission_create",
+          targetType: "preadmission",
+          targetId: saved.recordId,
+          result: "duplicate",
+          requestId,
+          createdAt: auditNow(clock)
+        });
+        return notify(saved);
+      }
       await repository2.writeAudit({
         uid,
         action: "preadmission_create",
         targetType: "preadmission",
         targetId: saved.recordId,
         result: "success",
+        requestId,
         createdAt
       });
       return notify(saved);
     },
-    async listPreadmissions(uid, requestedLimit = 30) {
-      const user = await authorize(uid);
+    async listPreadmissions(uid, requestedLimit = 30, rawRequestId = "") {
+      const requestId = normalizedRequestId(rawRequestId);
+      const user = await authorize(uid, "preadmission_list", "preadmission", "list", requestId);
       const limit = Math.max(1, Math.min(100, Number(requestedLimit) || 30));
       const records = await repository2.listPreadmissions(user.role === "admin" ? null : uid, limit);
       await repository2.writeAudit({
@@ -337,15 +519,29 @@ function createMarketPreadmissionService(repository2, notifier, clock = () => /*
         targetType: "preadmission",
         targetId: user.role === "admin" ? "all" : uid,
         result: "success",
+        requestId,
         createdAt: auditNow(clock)
       });
-      return records;
+      return records.map(toPreadmissionListItem);
     },
-    async retryNotification(uid, recordId) {
-      const user = await authorize(uid);
+    async retryNotification(uid, recordId, rawRequestId = "") {
+      const requestId = normalizedRequestId(rawRequestId);
+      const targetId = safeTargetId(recordId, "invalid");
+      const user = await authorize(uid, "notification_retry", "preadmission", targetId, requestId);
       const record = await repository2.getPreadmission(String(recordId ?? "").trim());
       if (!record) throw new MarketServiceError("RECORD_NOT_FOUND", "\u767B\u8BB0\u8BB0\u5F55\u4E0D\u5B58\u5728");
-      if (record.createdByUid !== uid && user.role !== "admin") throw new MarketServiceError("FORBIDDEN", "\u65E0\u6743\u91CD\u8BD5\u8BE5\u767B\u8BB0");
+      if (record.createdByUid !== uid && user.role !== "admin") {
+        await safeWriteAudit({
+          uid,
+          action: "notification_retry",
+          targetType: "preadmission",
+          targetId: record.recordId,
+          result: "denied",
+          requestId,
+          createdAt: auditNow(clock)
+        });
+        throw new MarketServiceError("FORBIDDEN", "\u65E0\u6743\u91CD\u8BD5\u8BE5\u767B\u8BB0");
+      }
       const updated = record.notificationStatus === "sent" ? record : await notify(record);
       await repository2.writeAudit({
         uid,
@@ -353,6 +549,7 @@ function createMarketPreadmissionService(repository2, notifier, clock = () => /*
         targetType: "preadmission",
         targetId: record.recordId,
         result: "success",
+        requestId,
         createdAt: auditNow(clock)
       });
       return updated;
@@ -455,6 +652,11 @@ function escapeRegExp(value) {
 function cleanRecord(value) {
   return Object.fromEntries(Object.entries(value).filter(([, field]) => field !== void 0));
 }
+function withoutInternalId(value) {
+  if (!value) return null;
+  const { _id: _internalId, ...record } = value;
+  return record;
+}
 function toPatientSummary(value) {
   return {
     patientId: String(value.patientId ?? ""),
@@ -514,17 +716,54 @@ var repository = {
     })).sort((a, b) => b.count - a.count || b.lastAdmissionDate.localeCompare(a.lastAdmissionDate));
     return { patient: toPatientSummary(rawPatient), encounters, diagnoses };
   },
+  async createNewPatientIfAbsent(patient, createdByUid, createdAt) {
+    try {
+      await db.collection(collectionNames.patients).add(cleanRecord({
+        ...patient,
+        _id: `patient_${patient.patientId}`,
+        source: "market_new",
+        createdByUid,
+        createdAt,
+        updatedAt: createdAt
+      }));
+      return patient;
+    } catch (error) {
+      const result = await db.collection(collectionNames.patients).where({ patientId: patient.patientId }).limit(1).get();
+      const existing = result.data[0];
+      if (existing) return toPatientSummary(existing);
+      throw error;
+    }
+  },
   async findPreadmissionBySubmissionId(clientSubmissionId) {
     const result = await db.collection(collectionNames.preadmissions).where({ clientSubmissionId }).limit(1).get();
-    return result.data[0] ?? null;
+    return withoutInternalId(result.data[0]);
   },
-  async createPreadmission(record) {
-    await db.collection(collectionNames.preadmissions).add(cleanRecord(record));
-    return record;
+  async createPreadmissionIfAbsent(record) {
+    try {
+      await db.collection(collectionNames.preadmissions).add(cleanRecord({
+        ...record,
+        _id: `preadmission_${record.clientSubmissionId}`
+      }));
+      return { record, created: true };
+    } catch (error) {
+      const existing = await this.findPreadmissionBySubmissionId(record.clientSubmissionId);
+      if (existing) return { record: existing, created: false };
+      throw error;
+    }
   },
   async getPreadmission(recordId) {
     const result = await db.collection(collectionNames.preadmissions).where({ recordId }).limit(1).get();
-    return result.data[0] ?? null;
+    return withoutInternalId(result.data[0]);
+  },
+  async claimNotification(recordId, expectedAttempts, update) {
+    const result = await db.collection(collectionNames.preadmissions).where({
+      recordId,
+      notificationAttempts: expectedAttempts,
+      notificationStatus: db.command.in(["pending", "failed", "not_configured"])
+    }).update(cleanRecord(update));
+    const updatedCount = Number(result.updated ?? result.stats?.updated ?? 0);
+    if (updatedCount !== 1) return null;
+    return this.getPreadmission(recordId);
   },
   async updateNotification(recordId, update) {
     const result = await db.collection(collectionNames.preadmissions).where({ recordId }).limit(1).get();
@@ -532,7 +771,7 @@ var repository = {
     if (!existing?._id) throw new MarketServiceError("RECORD_NOT_FOUND", "\u767B\u8BB0\u8BB0\u5F55\u4E0D\u5B58\u5728");
     const cleaned = cleanRecord(update);
     await db.collection(collectionNames.preadmissions).doc(existing._id).update(cleaned);
-    return { ...existing, ...cleaned };
+    return withoutInternalId({ ...existing, ...cleaned });
   },
   async listPreadmissions(uid, limit) {
     const collection = db.collection(collectionNames.preadmissions);
@@ -564,16 +803,22 @@ function statusForCode(code) {
   if (["PATIENT_NOT_FOUND", "RECORD_NOT_FOUND"].includes(code)) return 404;
   return 400;
 }
+function requestIdFromContext(context) {
+  if (!context || typeof context !== "object") return "unavailable";
+  const value = context;
+  return String(value.request_id ?? value.requestId ?? value.SCF_REQUEST_ID ?? "unavailable");
+}
 async function main(event, context) {
   try {
     const uid = (0, import_node_sdk.getCloudbaseContext)(context).TCB_UUID || "";
+    const requestId = requestIdFromContext(context);
     const input = parseMarketRequest(event);
-    if (input.action === "getSession") return response(200, { data: await service.getSession(uid) });
-    if (input.action === "searchPatients") return response(200, { data: await service.searchPatients(uid, String(input.query ?? "")) });
-    if (input.action === "getPatientHistory") return response(200, { data: await service.getPatientHistory(uid, String(input.patientId ?? "")) });
-    if (input.action === "createPreadmission") return response(200, { data: await service.createPreadmission(uid, input.draft) });
-    if (input.action === "listPreadmissions") return response(200, { data: await service.listPreadmissions(uid, Number(input.limit ?? 30)) });
-    if (input.action === "retryNotification") return response(200, { data: await service.retryNotification(uid, String(input.recordId ?? "")) });
+    if (input.action === "getSession") return response(200, { data: await service.getSession(uid, requestId) });
+    if (input.action === "searchPatients") return response(200, { data: await service.searchPatients(uid, String(input.query ?? ""), requestId) });
+    if (input.action === "getPatientHistory") return response(200, { data: await service.getPatientHistory(uid, String(input.patientId ?? ""), requestId) });
+    if (input.action === "createPreadmission") return response(200, { data: await service.createPreadmission(uid, input.draft, requestId) });
+    if (input.action === "listPreadmissions") return response(200, { data: await service.listPreadmissions(uid, Number(input.limit ?? 30), requestId) });
+    if (input.action === "retryNotification") return response(200, { data: await service.retryNotification(uid, String(input.recordId ?? ""), requestId) });
     throw new MarketServiceError("INVALID_ACTION", "\u64CD\u4F5C\u7C7B\u578B\u65E0\u6548");
   } catch (error) {
     if (error instanceof MarketServiceError) {

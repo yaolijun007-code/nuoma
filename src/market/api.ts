@@ -4,6 +4,7 @@ import type {
   PatientHistory,
   PatientSummary,
   PreadmissionDraft,
+  PreadmissionListItem,
   PreadmissionRecord,
 } from "../domain/market-preadmission";
 
@@ -25,7 +26,7 @@ export interface MarketApi {
   searchPatients(query: string): Promise<PatientSummary[]>;
   getPatientHistory(patientId: string): Promise<PatientHistory>;
   createPreadmission(draft: PreadmissionDraft): Promise<PreadmissionRecord>;
-  listPreadmissions(limit?: number): Promise<PreadmissionRecord[]>;
+  listPreadmissions(limit?: number): Promise<PreadmissionListItem[]>;
   retryNotification(recordId: string): Promise<PreadmissionRecord>;
 }
 
@@ -141,7 +142,7 @@ export function createMarketApi(app: CloudBaseAppLike): MarketApi {
     },
 
     listPreadmissions(limit = 30) {
-      return call<PreadmissionRecord[]>("listPreadmissions", { limit });
+      return call<PreadmissionListItem[]>("listPreadmissions", { limit });
     },
 
     retryNotification(recordId) {
