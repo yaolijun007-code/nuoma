@@ -131,18 +131,16 @@ JSMZ_PREADMISSION_WECOM_WEBHOOK_URL
 
 只在控制台密文输入框中粘贴机器人地址。不要把值写入 `.env`、部署命令、截图、工单或应用日志。考虑到原机器人地址曾经通过对话传递，上线前应在企业微信群中重新生成机器人 key，并只配置新地址。
 
-在“云函数 → 权限控制”中合并以下规则；如果环境已有规则，先导出保存并逐项确认，不能直接覆盖：
+在“云函数 → 权限控制”中合并规则；如果环境已有规则，先导出保存并逐项确认，不能直接覆盖。与公开问卷共用环境时，可保留原有公开函数配置，并为市场系统增加更严格的具体规则：
 
 ```json
 {
-  "*": { "invoke": false },
-  "submitSurvey": { "invoke": true },
-  "adminSurvey": { "invoke": "auth.loginType != 'ANONYMOUS' && auth != null" },
+  "*": { "invoke": true },
   "marketPreadmission": { "invoke": "auth.loginType != 'ANONYMOUS' && auth != null" }
 }
 ```
 
-函数安全规则负责阻止匿名调用；`marketPreadmission` 内部还会再次根据 UID 查询 `hospital_market_users`，落实市场人员和管理员权限。
+具体函数名的规则优先于 `*`。因此现有公开问卷仍可匿名提交，但 `marketPreadmission` 会拒绝匿名调用；函数内部还会再次根据 UID 查询 `hospital_market_users`，落实市场人员和管理员权限。
 
 ## 7. 发布静态页面
 
@@ -156,7 +154,9 @@ tcb hosting deploy ./dist-market-preadmission market-preadmission \
   --verify
 ```
 
-不要使用 `--prune`，以免删除同一静态托管环境中的既有问卷文件。上线地址为 CloudBase 默认域名或已备案自定义域名下的 `/market-preadmission/`。
+不要使用 `--prune`，以免删除同一静态托管环境中的既有问卷文件。
+
+CloudBase 默认 `*.tcloudbaseapp.com` 域名只作为内部联调地址：首次访问会出现风险提示中间页，且平台明确不建议将默认域名用于正式生产。正式交给市场人员前，应绑定已完成 ICP 备案的医院自定义域名，并将 `/market-preadmission/` 作为正式入口；绑定后再用该域名完成一次登录、患者查询和合成登记验收。
 
 ## 8. 上线验收
 
@@ -182,4 +182,3 @@ tcb hosting deploy ./dist-market-preadmission market-preadmission \
 - 每月抽查审计日志是否存在异常高频搜索或越权失败。
 - 更新患者历史数据前先生成新清单，对比记录数、身份风险数和源 SHA-256，再在测试环境验证。
 - 群机器人更换后只更新函数环境变量并发布函数配置，不重新构建前端。
-
