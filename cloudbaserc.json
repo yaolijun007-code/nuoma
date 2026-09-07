@@ -22,6 +22,16 @@
       "memorySize": 256,
       "installDependency": true,
       "ignore": ["src", "*.test.*"]
+    },
+    {
+      "name": "marketPreadmission",
+      "type": "Event",
+      "runtime": "Nodejs20.19",
+      "handler": "index.main",
+      "timeout": 15,
+      "memorySize": 256,
+      "installDependency": true,
+      "ignore": ["src", "*.test.*"]
     }
   ]
 }

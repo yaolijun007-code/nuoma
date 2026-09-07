@@ -6,8 +6,8 @@ import viteConfig, { resolveBrandBase, resolveBrandMetadata } from "../../vite.c
 
 describe("CloudBase function configuration", () => {
   it("deploys event handlers behind SCF gateway routes", () => {
-    expect(config.functions.map((fn) => fn.type)).toEqual(["Event", "Event"]);
-    expect(config.functions.map((fn) => fn.handler)).toEqual(["index.main", "index.main"]);
+    expect(config.functions.map((fn) => fn.type)).toEqual(["Event", "Event", "Event"]);
+    expect(config.functions.map((fn) => fn.handler)).toEqual(["index.main", "index.main", "index.main"]);
     expect(config.functions.some((fn) => "envVariables" in fn)).toBe(false);
   });
 
@@ -17,7 +17,7 @@ describe("CloudBase function configuration", () => {
   });
 
   it("pins cloud function SDKs to the audited runtime dependency set", () => {
-    const packages = ["submitSurvey", "adminSurvey"].map((name) => JSON.parse(readFileSync(
+    const packages = ["submitSurvey", "adminSurvey", "marketPreadmission"].map((name) => JSON.parse(readFileSync(
       new URL(`../../functions/${name}/package.json`, import.meta.url),
       "utf8",
     )));
@@ -33,7 +33,7 @@ describe("CloudBase function configuration", () => {
   });
 
   it("initializes CloudBase without repeating current-environment warnings", () => {
-    for (const name of ["submitSurvey", "adminSurvey"]) {
+    for (const name of ["submitSurvey", "adminSurvey", "marketPreadmission"]) {
       const source = readFileSync(
         new URL(`../../functions/${name}/src/index.ts`, import.meta.url),
         "utf8",

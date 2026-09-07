@@ -1,6 +1,6 @@
 import { build } from "esbuild";
 
-for (const name of ["submitSurvey", "adminSurvey"]) {
+for (const name of ["submitSurvey", "adminSurvey", "marketPreadmission"]) {
   await build({
     entryPoints: [`functions/${name}/src/index.ts`],
     outfile: `functions/${name}/index.js`,
