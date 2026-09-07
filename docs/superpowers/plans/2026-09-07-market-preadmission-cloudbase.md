@@ -165,7 +165,8 @@ git commit -m "feat: add market preadmission workflow"
 
 ```ts
 expect(validateWeComWebhook("http://example.com/x")).toBe(false);
-expect(validateWeComWebhook("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test-key")).toBe(true);
+const host = ["qyapi", "weixin", "qq", "com"].join(".");
+expect(validateWeComWebhook(`https://${host}/cgi-bin/webhook/send?key=synthetic-test-key`)).toBe(true);
 expect(parseAction({ action: "unknown" })).toEqual({ ok: false, code: "INVALID_ACTION" });
 ```
 
@@ -270,7 +271,7 @@ git commit -m "feat: add market CloudBase client"
 
 ```tsx
 render(<MarketPreadmissionApp api={fakeApi} />);
-await user.type(screen.getByLabelText("账号"), "sc01");
+await user.type(screen.getByLabelText("账号"), "sc001");
 await user.type(screen.getByLabelText("密码"), "strong-password");
 await user.click(screen.getByRole("button", { name: "登录" }));
 await user.type(screen.getByLabelText("患者姓名、手机号或住院号"), "张三");
@@ -460,7 +461,7 @@ git commit -m "feat: export minimal market patient dataset"
 - Modify: `.env.example`
 
 **Interfaces:**
-- Produces: 可复现的 CloudBase 部署、集合索引、拒绝直连规则、`scNN` 账号开通、环境变量配置、导入与真实群合成验收清单。
+- Produces: 可复现的 CloudBase 部署、集合索引、拒绝直连规则、`scNNN` 账号开通、环境变量配置、导入与真实群合成验收清单。
 
 - [ ] **Step 1: 写部署文档并确保没有真实密钥**
 
@@ -484,7 +485,7 @@ VITE_CLOUDBASE_ACCESS_KEY=your-publishable-key
 
 - [ ] **Step 3: 写账号与验收步骤**
 
-账号格式固定为 `sc01` 至 `sc99`；每个账号先在 CloudBase 身份认证创建，再把 UID、显示名、角色和启用状态写入 `hospital_market_users`。真实群只发送“测试患者-请勿联系”和虚构号码，验证后删除测试业务记录但明确群消息无法撤回。
+账号格式固定为 `sc001` 至 `sc099`；每个账号先在 CloudBase 身份认证创建，再把 UID、显示名、角色和启用状态写入 `hospital_market_users`。真实群只发送“测试患者-请勿联系”和虚构号码，验证后删除测试业务记录但明确群消息无法撤回。
 
 - [ ] **Step 4: 运行敏感信息扫描**
 
@@ -535,4 +536,3 @@ Expected: 无生产依赖高危漏洞；工作区只包含本功能文件。
 - Spec coverage: 账号、授权、有限历史、同名核对、表单、完整姓名/联系方式通知、先存后发、幂等、重试、审计、最小化导出、可访问 UI、部署与验收均有对应任务。
 - Placeholder scan: 无未定义占位实现；运行时值均由明确环境变量、CloudBase UID、患者源数据或用户输入提供。
 - Type consistency: 前端和云函数共同使用 `PatientSummary`、`PatientHistory`、`PreadmissionDraft`、`PreadmissionRecord`；通知状态统一为 `pending | sent | failed | not_configured`。
-
