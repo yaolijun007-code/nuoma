@@ -11,6 +11,8 @@ coverage/
 /outputs/
 /output/
 /tmp/pdfs/
+/market-import/
+/data/market-import/
 .worktrees/
 .cloudbase/
 *.tsbuildinfo
