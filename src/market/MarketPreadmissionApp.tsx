@@ -489,7 +489,7 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
               <form className="patient-search" onSubmit={handleSearch}>
                 <label htmlFor="patient-query">患者姓名、手机号或住院号</label>
                 <div className="search-row">
-                  <span className="search-input-wrap"><Search size={20} /><input ref={searchInputRef} id="patient-query" value={query} onChange={(event) => setQuery(event.target.value)} autoComplete="off" placeholder="例如：张三 / 138…… / 住院号" required /></span>
+                  <span className="search-input-wrap"><Search size={20} /><input ref={searchInputRef} id="patient-query" value={query} onChange={(event) => setQuery(event.target.value)} autoComplete="off" placeholder="患者姓名 / 11 位手机号 / 住院号" required /></span>
                   <button type="submit" className="market-primary-button" disabled={searching}>{searching ? "查询中…" : "查询"}</button>
                 </div>
               </form>
