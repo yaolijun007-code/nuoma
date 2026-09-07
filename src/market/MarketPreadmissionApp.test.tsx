@@ -58,6 +58,7 @@ function fakeApi(overrides: Partial<MarketApi> = {}): MarketApi {
   return {
     restoreSession: vi.fn().mockResolvedValue(marketUser),
     login: vi.fn().mockResolvedValue(marketUser),
+    changePassword: vi.fn().mockResolvedValue(undefined),
     logout: vi.fn().mockResolvedValue(undefined),
     searchPatients: vi.fn().mockResolvedValue([history.patient]),
     getPatientHistory: vi.fn().mockResolvedValue(history),
@@ -208,6 +209,53 @@ describe("market preadmission app", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("登记记录加载失败");
     expect(screen.getByRole("button", { name: "重新加载登记记录" })).toBeEnabled();
     expect(screen.queryByText("还没有登记记录")).not.toBeInTheDocument();
+  });
+
+  it("lets the signed-in user change their own password", async () => {
+    const user = userEvent.setup();
+    const api = fakeApi();
+    render(<MarketPreadmissionApp api={api} />);
+    await user.click(await screen.findByRole("button", { name: "修改密码" }));
+    await user.type(screen.getByLabelText("旧密码"), "OldPass1!");
+    await user.type(screen.getByLabelText("新密码"), "NewPass2@");
+    await user.type(screen.getByLabelText("确认新密码"), "NewPass2@");
+    await user.click(screen.getByRole("button", { name: "确认修改密码" }));
+
+    expect(api.changePassword).toHaveBeenCalledWith("OldPass1!", "NewPass2@");
+    expect(await screen.findByRole("status")).toHaveTextContent("密码修改成功");
+    expect(screen.getByLabelText("旧密码")).toHaveValue("");
+    expect(screen.getByLabelText("新密码")).toHaveValue("");
+    expect(screen.getByLabelText("确认新密码")).toHaveValue("");
+  });
+
+  it("rejects mismatched new passwords before calling CloudBase", async () => {
+    const user = userEvent.setup();
+    const api = fakeApi();
+    render(<MarketPreadmissionApp api={api} />);
+    await user.click(await screen.findByRole("button", { name: "修改密码" }));
+    await user.type(screen.getByLabelText("旧密码"), "OldPass1!");
+    await user.type(screen.getByLabelText("新密码"), "NewPass2@");
+    await user.type(screen.getByLabelText("确认新密码"), "Different3#");
+    await user.click(screen.getByRole("button", { name: "确认修改密码" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("两次输入的新密码不一致");
+    expect(api.changePassword).not.toHaveBeenCalled();
+  });
+
+  it("rejects a weak new password before calling CloudBase", async () => {
+    const user = userEvent.setup();
+    const api = fakeApi();
+    render(<MarketPreadmissionApp api={api} />);
+    await user.click(await screen.findByRole("button", { name: "修改密码" }));
+    await user.type(screen.getByLabelText("旧密码"), "OldPass1!");
+    expect(screen.getByLabelText("新密码")).toHaveAttribute("minlength", "8");
+    expect(screen.getByLabelText("新密码")).toHaveAttribute("maxlength", "64");
+    await user.type(screen.getByLabelText("新密码"), "weakpass");
+    await user.type(screen.getByLabelText("确认新密码"), "weakpass");
+    await user.click(screen.getByRole("button", { name: "确认修改密码" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("新密码需为 8–64 位，并包含大小写字母、数字和特殊字符");
+    expect(api.changePassword).not.toHaveBeenCalled();
   });
 
   it("clears patient information locally even if remote logout fails", async () => {

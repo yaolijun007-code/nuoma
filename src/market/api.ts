@@ -10,6 +10,7 @@ import type {
 
 interface AuthLike {
   signInWithPassword(params: { username: string; password: string }): Promise<unknown>;
+  resetPasswordForOld(params: { old_password: string; new_password: string }): Promise<unknown>;
   signOut(): Promise<unknown> | unknown;
   getSession(): Promise<unknown>;
 }
@@ -22,6 +23,7 @@ export interface CloudBaseAppLike {
 export interface MarketApi {
   restoreSession(): Promise<MarketUser | null>;
   login(username: string, password: string): Promise<MarketUser>;
+  changePassword(oldPassword: string, newPassword: string): Promise<void>;
   logout(): Promise<void>;
   searchPatients(query: string): Promise<PatientSummary[]>;
   getPatientHistory(patientId: string): Promise<PatientHistory>;
@@ -35,6 +37,18 @@ export class MarketApiError extends Error {
     super(message);
     this.name = "MarketApiError";
   }
+}
+
+export const marketPasswordRuleMessage = "新密码需为 8–64 位，并包含大小写字母、数字和特殊字符";
+
+export function isStrongMarketPassword(value: string) {
+  return value.length >= 8
+    && value.length <= 64
+    && /^[\x21-\x7E]+$/.test(value)
+    && /[A-Z]/.test(value)
+    && /[a-z]/.test(value)
+    && /\d/.test(value)
+    && /[^A-Za-z0-9]/.test(value);
 }
 
 function objectValue(value: unknown): Record<string, unknown> | null {
@@ -123,6 +137,32 @@ export function createMarketApi(app: CloudBaseAppLike): MarketApi {
         await auth.signOut();
         throw error;
       }
+    },
+
+    async changePassword(oldPassword, newPassword) {
+      if (!oldPassword) throw new MarketApiError("INVALID_OLD_PASSWORD", "请输入旧密码");
+      if (newPassword === oldPassword) throw new MarketApiError("PASSWORD_UNCHANGED", "新密码不能与旧密码相同");
+      if (!isStrongMarketPassword(newPassword)) throw new MarketApiError("WEAK_PASSWORD", marketPasswordRuleMessage);
+      let changeResult: unknown;
+      try {
+        changeResult = await auth.resetPasswordForOld({
+          old_password: oldPassword,
+          new_password: newPassword,
+        });
+      } catch {
+        throw new MarketApiError("PASSWORD_CHANGE_FAILED", "密码修改失败，请稍后重试");
+      }
+      const response = objectValue(changeResult);
+      const error = objectValue(response?.error);
+      if (!error) return;
+      const code = String(error.code ?? error.error ?? "").toLowerCase();
+      if (["invalid_password", "invalid_old_password", "wrong_password"].includes(code)) {
+        throw new MarketApiError("INVALID_OLD_PASSWORD", "旧密码不正确，请重新输入");
+      }
+      if (code.includes("weak") || code.includes("password_too_weak")) {
+        throw new MarketApiError("WEAK_PASSWORD", marketPasswordRuleMessage);
+      }
+      throw new MarketApiError("PASSWORD_CHANGE_FAILED", "密码修改失败，请稍后重试");
     },
 
     async logout() {

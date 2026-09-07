@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock3,
   History,
+  KeyRound,
   LogOut,
   RefreshCw,
   Search,
@@ -30,10 +31,16 @@ import {
   type PreadmissionRecord,
   type PreadmissionListItem,
 } from "../domain/market-preadmission";
-import { createDefaultMarketApi, type MarketApi } from "./api";
+import {
+  createDefaultMarketApi,
+  isStrongMarketPassword,
+  marketPasswordRuleMessage,
+  MarketApiError,
+  type MarketApi,
+} from "./api";
 import "./market-preadmission.css";
 
-type View = "workspace" | "records";
+type View = "workspace" | "records" | "password";
 
 interface MarketPreadmissionAppProps {
   api?: MarketApi;
@@ -159,6 +166,139 @@ function StepRail({ step }: { step: 1 | 2 | 3 }) {
         );
       })}
     </ol>
+  );
+}
+
+type PasswordErrorField = "old" | "new" | "confirm" | "form" | null;
+
+function ChangePasswordView({ onChangePassword, onBack }: {
+  onChangePassword: (oldPassword: string, newPassword: string) => Promise<void>;
+  onBack: () => void;
+}) {
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [errorField, setErrorField] = useState<PasswordErrorField>(null);
+  const [success, setSuccess] = useState("");
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setErrorField(null);
+    setSuccess("");
+    if (newPassword !== confirmPassword) {
+      setError("两次输入的新密码不一致，请重新确认");
+      setErrorField("confirm");
+      return;
+    }
+    if (newPassword === oldPassword) {
+      setError("新密码不能与旧密码相同");
+      setErrorField("new");
+      return;
+    }
+    if (!isStrongMarketPassword(newPassword)) {
+      setError(marketPasswordRuleMessage);
+      setErrorField("new");
+      return;
+    }
+    setBusy(true);
+    try {
+      await onChangePassword(oldPassword, newPassword);
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setSuccess("密码修改成功，旧密码已失效");
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "密码修改失败，请稍后重试";
+      setError(message);
+      setErrorField(reason instanceof MarketApiError && reason.code === "INVALID_OLD_PASSWORD" ? "old" : "form");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const describedBy = (field: Exclude<PasswordErrorField, "form" | null>, includeRule = false) => {
+    const ids = [];
+    if (includeRule) ids.push("market-password-rule");
+    if (error && errorField === field) ids.push("market-password-error");
+    return ids.length ? ids.join(" ") : undefined;
+  };
+
+  return (
+    <section className="market-section password-section" aria-labelledby="change-password-title">
+      <button type="button" className="market-text-button" onClick={onBack}><ArrowLeft size={17} aria-hidden="true" />返回患者登记</button>
+      <div className="section-heading password-heading">
+        <div><p className="market-kicker">账号安全</p><h1 id="change-password-title">修改密码</h1></div>
+        <p>只能修改当前登录账号</p>
+      </div>
+      <p className="password-intro">请输入现用密码并设置新密码。修改成功后，旧密码立即失效。</p>
+      <form className="password-form" onSubmit={submit} aria-busy={busy}>
+        <div className="form-field">
+          <label htmlFor="current-account-password">旧密码</label>
+          <input
+            id="current-account-password"
+            type="password"
+            value={oldPassword}
+            onChange={(event) => setOldPassword(event.target.value)}
+            autoComplete="current-password"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            maxLength={64}
+            aria-invalid={errorField === "old"}
+            aria-describedby={describedBy("old")}
+            disabled={busy}
+            required
+          />
+        </div>
+        <div className="form-field">
+          <label htmlFor="new-account-password">新密码</label>
+          <input
+            id="new-account-password"
+            type="password"
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            autoComplete="new-password"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            minLength={8}
+            maxLength={64}
+            aria-invalid={errorField === "new"}
+            aria-describedby={describedBy("new", true)}
+            disabled={busy}
+            required
+          />
+          <small id="market-password-rule" className="password-rule">8–64 位，包含大小写字母、数字和特殊字符。</small>
+        </div>
+        <div className="form-field">
+          <label htmlFor="confirm-account-password">确认新密码</label>
+          <input
+            id="confirm-account-password"
+            type="password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            autoComplete="new-password"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            minLength={8}
+            maxLength={64}
+            aria-invalid={errorField === "confirm"}
+            aria-describedby={describedBy("confirm")}
+            disabled={busy}
+            required
+          />
+        </div>
+        {error ? <div id="market-password-error" className="market-alert error password-message" role="alert">{error}</div> : null}
+        {success ? <div className="market-alert password-success password-message" role="status"><CheckCircle2 size={18} aria-hidden="true" />{success}</div> : null}
+        <div className="password-actions">
+          <button type="submit" className="market-primary-button" disabled={busy}>{busy ? "正在修改…" : "确认修改密码"}</button>
+        </div>
+      </form>
+    </section>
   );
 }
 
@@ -559,6 +699,11 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
     } finally { setSubmitting(false); }
   };
 
+  const changePassword = async (oldPassword: string, newPassword: string) => {
+    if (!api) throw new MarketApiError("CONFIG_REQUIRED", "系统尚未完成 CloudBase 登录配置，请联系管理员");
+    await api.changePassword(oldPassword, newPassword);
+  };
+
   const logout = async () => {
     try {
       if (api) await api.logout();
@@ -592,7 +737,11 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
             <button type="button" className={view === "workspace" ? "is-active" : ""} onClick={() => setView("workspace")}>患者登记</button>
             <button type="button" className={view === "records" ? "is-active" : ""} onClick={() => { setView("records"); void loadRecords(); }}>我的登记</button>
           </nav>
-          <div className="market-user"><span><strong>{session.displayName}</strong><small>{session.username}</small></span><button type="button" aria-label="退出登录" onClick={logout}><LogOut size={19} /></button></div>
+          <div className="market-user">
+            <span><strong>{session.displayName}</strong><small>{session.username}</small></span>
+            <button type="button" className="market-account-action" aria-label="修改密码" aria-pressed={view === "password"} onClick={() => setView("password")}><KeyRound size={18} aria-hidden="true" /><span>修改密码</span></button>
+            <button type="button" aria-label="退出登录" onClick={logout}><LogOut size={19} aria-hidden="true" /></button>
+          </div>
         </div>
       </header>
       <main className="market-main">
@@ -629,7 +778,11 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
             ) : null}
             {submissionError ? <div className="market-alert error floating-error" role="alert">{submissionError}</div> : null}
           </>
-        ) : <RecordsView records={records} loading={recordsLoading} error={recordsError} onReload={() => void loadRecords()} onRetry={(record) => void retry(record)} />}
+        ) : view === "records" ? (
+          <RecordsView records={records} loading={recordsLoading} error={recordsError} onReload={() => void loadRecords()} onRetry={(record) => void retry(record)} />
+        ) : (
+          <ChangePasswordView onChangePassword={changePassword} onBack={() => setView("workspace")} />
+        )}
       </main>
       <footer className="market-footer"><Clock3 size={15} />内部工作系统 · 仅处理本次工作所需信息</footer>
     </div>

@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
 const brandBuilds = {
@@ -34,7 +34,19 @@ export function resolveBrandBase(id = "hospital") {
   return resolveBrandMetadata(id).base;
 }
 
+export function assertMarketBuildEnvironment(id: string, environment: Record<string, string | undefined>) {
+  if (id !== "market-preadmission") return;
+  for (const name of ["VITE_CLOUDBASE_ENV_ID", "VITE_CLOUDBASE_ACCESS_KEY"] as const) {
+    if (!environment[name]?.trim()) throw new Error(`市场预住院构建缺少 ${name}`);
+  }
+}
+
 const brandId = process.env.VITE_SURVEY_BRAND || "hospital";
+const buildEnvironment = {
+  ...loadEnv(process.env.NODE_ENV === "test" ? "test" : "production", process.cwd(), ""),
+  ...process.env,
+};
+assertMarketBuildEnvironment(brandId, buildEnvironment);
 const metadata = resolveBrandMetadata(brandId);
 
 export default defineConfig({

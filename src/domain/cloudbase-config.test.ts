@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import config from "../../cloudbaserc.json";
-import viteConfig, { resolveBrandBase, resolveBrandMetadata } from "../../vite.config";
+import viteConfig, { assertMarketBuildEnvironment, resolveBrandBase, resolveBrandMetadata } from "../../vite.config";
 
 describe("CloudBase function configuration", () => {
   it("deploys event handlers behind SCF gateway routes", () => {
@@ -65,6 +65,18 @@ describe("CloudBase function configuration", () => {
       description: "诺玛元一健康与功能状态问卷",
     });
     expect(() => resolveBrandBase("unknown")).toThrow("未知问卷品牌");
+  });
+
+  it("refuses to build the market app without both publishable CloudBase values", () => {
+    expect(() => assertMarketBuildEnvironment("market-preadmission", {})).toThrow("VITE_CLOUDBASE_ENV_ID");
+    expect(() => assertMarketBuildEnvironment("market-preadmission", {
+      VITE_CLOUDBASE_ENV_ID: "example-env",
+    })).toThrow("VITE_CLOUDBASE_ACCESS_KEY");
+    expect(() => assertMarketBuildEnvironment("market-preadmission", {
+      VITE_CLOUDBASE_ENV_ID: "example-env",
+      VITE_CLOUDBASE_ACCESS_KEY: "publishable-key",
+    })).not.toThrow();
+    expect(() => assertMarketBuildEnvironment("hospital", {})).not.toThrow();
   });
 
   it("passes documents directly to the server-side CloudBase SDK", () => {

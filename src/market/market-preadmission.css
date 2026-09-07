@@ -89,6 +89,8 @@
   .market-user strong, .market-user small { display: block; }
   .market-user small { margin-top: 2px; color: var(--market-muted); }
   .market-user button { width: 44px; height: 44px; border: 1px solid var(--market-line); background: #fff; color: var(--market-muted); border-radius: 7px; }
+  .market-user .market-account-action { width: auto; padding: 0 14px; color: var(--market-teal-dark); }
+  .market-user .market-account-action[aria-pressed="true"] { border-color: var(--market-teal); background: var(--market-teal-pale); }
 
   .market-main { width: min(1060px, calc(100% - 40px)); margin: 0 auto; padding: 32px 0 56px; }
   .market-step-rail { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 0 0 24px; padding: 0; border: 1px solid var(--market-line); background: var(--market-surface); }
@@ -199,6 +201,14 @@
   .market-empty { min-height: 250px; display: grid; place-content: center; justify-items: center; color: var(--market-muted); text-align: center; }
   .market-empty strong { margin-top: 12px; color: var(--market-ink); }
   .market-empty p { max-width: 340px; margin: 7px 0 0; font-size: 13px; line-height: 1.6; }
+  .password-section { width: min(100%, 640px); margin-inline: auto; }
+  .password-heading { margin-bottom: 12px; }
+  .password-intro { margin-bottom: 24px; color: var(--market-muted); font-size: 14px; line-height: 1.65; }
+  .password-form { display: grid; gap: 18px; }
+  .password-form .password-rule { color: var(--market-muted); }
+  .password-message { margin-top: 0; }
+  .password-success { border-color: #b9dbc6; background: var(--market-green-pale); color: var(--market-green); }
+  .password-actions { display: flex; justify-content: flex-end; padding-top: 2px; }
   .market-footer { min-height: 58px; display: flex; align-items: center; justify-content: center; gap: 7px; border-top: 1px solid var(--market-line); color: var(--market-muted); font-size: 12px; }
 }
 
@@ -230,6 +240,10 @@
     .new-patient-actions { align-items: stretch; flex-direction: column; }
     .new-patient-grid { grid-template-columns: 1fr; }
     .new-patient-actions .market-primary-button, .new-patient-entry .market-secondary-button { width: 100%; }
+    .market-user { gap: 8px; }
+    .market-user .market-account-action { width: 44px; padding: 0; }
+    .market-account-action > span { display: none; }
+    .password-actions .market-primary-button { width: 100%; }
     .results-heading { display: block; }
     .results-heading span { display: block; margin-top: 5px; }
     .patient-candidate { grid-template-columns: 1fr; }
