@@ -25,6 +25,20 @@ module.exports = __toCommonJS(index_exports);
 var import_node_sdk = require("@cloudbase/node-sdk");
 
 // src/domain/market-preadmission.ts
+var patientTypeOptions = [
+  "\u57CE\u9547\u804C\u5DE5\u533B\u4FDD",
+  "\u4F4E\u4FDD\u4EBA\u5458\u533B\u4FDD",
+  "\u666E\u901A\u5C45\u6C11\u533B\u4FDD",
+  "\u7279\u56F0\u4F9B\u517B\u4EBA\u5458\u533B\u4FDD",
+  "\u81EA\u8D39"
+];
+var intendedDepartmentOptions = [
+  "\u98CE\u6E7F\u514D\u75AB\u79D1",
+  "\u5EB7\u590D\u79D1",
+  "\u8001\u5E74\u533B\u5B66\u79D1",
+  "\u4F4F\u9662\u5185\u4E00\u79D1",
+  "\u4F4F\u9662\u5916\u4E00\u79D1"
+];
 var contactResults = {
   patient_interested: "\u60A3\u8005\u672C\u4EBA\u6709\u610F\u613F",
   family_interested: "\u5BB6\u5C5E\u6709\u610F\u613F",
@@ -34,6 +48,8 @@ var contactResults = {
   other: "\u5176\u4ED6"
 };
 var allowedContactResults = new Set(Object.keys(contactResults));
+var allowedPatientTypes = new Set(patientTypeOptions);
+var allowedIntendedDepartments = new Set(intendedDepartmentOptions);
 function safeInline(value, limit = 120) {
   return String(value ?? "").replace(/[\r\n<>`\[\]]/g, " ").replace(/\s+/g, " ").trim().slice(0, limit);
 }
@@ -82,10 +98,15 @@ function validatePreadmissionDraft(input) {
   if (patientId && newPatient) throw new Error("\u5386\u53F2\u60A3\u8005\u4E0E\u65B0\u60A3\u8005\u8D44\u6599\u4E0D\u80FD\u540C\u65F6\u63D0\u4EA4");
   const contactPhone = String(input?.contactPhone ?? "").replace(/\s+/g, "").trim();
   if (!/^[0-9+()\-]{5,30}$/.test(contactPhone)) throw new Error("\u8054\u7CFB\u65B9\u5F0F\u683C\u5F0F\u4E0D\u6B63\u786E");
+  const patientType = safeInline(input?.patientType, 30);
+  if (!patientType) throw new Error("\u8BF7\u9009\u62E9\u60A3\u8005\u7C7B\u578B");
+  if (!allowedPatientTypes.has(patientType)) throw new Error("\u60A3\u8005\u7C7B\u578B\u65E0\u6548");
   const plannedAdmissionDate = String(input?.plannedAdmissionDate ?? "").trim();
   if (!plannedAdmissionDate) throw new Error("\u8BF7\u9009\u62E9\u8BA1\u5212\u4F4F\u9662\u65E5\u671F");
   if (!validIsoDate(plannedAdmissionDate)) throw new Error("\u8BA1\u5212\u4F4F\u9662\u65E5\u671F\u683C\u5F0F\u4E0D\u6B63\u786E");
-  const intendedDepartment = requiredText(input?.intendedDepartment, "\u62DF\u5165\u79D1\u5BA4", 60);
+  const intendedDepartment = safeInline(input?.intendedDepartment, 30);
+  if (!intendedDepartment) throw new Error("\u8BF7\u9009\u62E9\u62DF\u4F4F\u9662\u79D1\u5BA4");
+  if (!allowedIntendedDepartments.has(intendedDepartment)) throw new Error("\u62DF\u4F4F\u9662\u79D1\u5BA4\u65E0\u6548");
   const mainProblem = requiredText(input?.mainProblem, "\u4E3B\u8981\u95EE\u9898", 500);
   const contactResult = String(input?.contactResult ?? "");
   if (!allowedContactResults.has(contactResult)) throw new Error("\u8BF7\u9009\u62E9\u8054\u7CFB\u7ED3\u679C");
@@ -94,6 +115,7 @@ function validatePreadmissionDraft(input) {
     clientSubmissionId,
     patientId,
     contactPhone,
+    patientType,
     plannedAdmissionDate,
     intendedDepartment,
     mainProblem,
@@ -131,9 +153,10 @@ function buildPreadmissionMarkdown(model) {
     `**\u8054\u7CFB\u7535\u8BDD**\uFF1A${safeInline(model.contactPhone, 30)}`,
     `**\u57FA\u672C\u4FE1\u606F**\uFF1A${safeInline(model.sex, 10) || "\u672A\u8BB0\u5F55"}\uFF5C${age}`,
     `**\u65E2\u5F80\u4F4F\u9662**\uFF1A${Math.max(0, Math.floor(Number(model.admissionCount) || 0))} \u6B21\uFF5C\u6700\u8FD1 ${latestStay}`,
+    `**\u60A3\u8005\u7C7B\u578B**\uFF1A${safeInline(model.patientType, 30) || "\u672A\u8BB0\u5F55"}`,
     "",
     `**\u8BA1\u5212\u4F4F\u9662\u65E5\u671F**\uFF1A${safeInline(model.plannedAdmissionDate, 10)}`,
-    `**\u62DF\u5165\u79D1\u5BA4**\uFF1A${safeInline(model.intendedDepartment, 60)}`,
+    `**\u62DF\u4F4F\u9662\u79D1\u5BA4**\uFF1A${safeInline(model.intendedDepartment, 30)}`,
     `**\u4E3B\u8981\u95EE\u9898**\uFF1A${safeInline(model.mainProblem, 500)}`,
     `**\u8054\u7CFB\u7ED3\u679C**\uFF1A${contactResults[model.contactResult] || "\u5176\u4ED6"}`,
     "",
@@ -193,6 +216,7 @@ function messageModel(record) {
     admissionCount: record.patientSnapshot.admissionCount,
     latestAdmissionDate: record.patientSnapshot.latestAdmissionDate,
     latestDischargeDate: record.patientSnapshot.latestDischargeDate,
+    patientType: record.patientType,
     plannedAdmissionDate: record.plannedAdmissionDate,
     intendedDepartment: record.intendedDepartment,
     mainProblem: record.mainProblem,
@@ -459,6 +483,7 @@ function createMarketPreadmissionService(repository2, notifier, clock = () => /*
           latestDischargeDate: history.patient.latestDischargeDate
         },
         contactPhone: draft.contactPhone,
+        patientType: draft.patientType,
         plannedAdmissionDate: draft.plannedAdmissionDate,
         intendedDepartment: draft.intendedDepartment,
         mainProblem: draft.mainProblem,

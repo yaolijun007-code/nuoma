@@ -42,8 +42,9 @@ const draft = {
   clientSubmissionId: "ad1a5d26-7f3d-4a81-8230-fc7ff5fd14c7",
   patientId: "P-001",
   contactPhone: "13800138000",
+  patientType: "普通居民医保" as const,
   plannedAdmissionDate: "2026-09-20",
-  intendedDepartment: "消化内科",
+  intendedDepartment: "风湿免疫科" as const,
   mainProblem: "反复腹胀，希望进一步评估",
   contactResult: "patient_interested" as const,
   notes: "",
@@ -150,8 +151,19 @@ describe("market preadmission service", () => {
     const result = await service.createPreadmission(user.uid, draft);
     expect(repository.records).toHaveLength(1);
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][0]).toMatchObject({ patientName: "张三", contactPhone: "13800138000" });
-    expect(result).toMatchObject({ recordId: "PY-20260907-0001", notificationStatus: "sent", notificationAttempts: 1 });
+    expect(send.mock.calls[0][0]).toMatchObject({
+      patientName: "张三",
+      contactPhone: "13800138000",
+      patientType: "普通居民医保",
+      intendedDepartment: "风湿免疫科",
+    });
+    expect(result).toMatchObject({
+      recordId: "PY-20260907-0001",
+      patientType: "普通居民医保",
+      intendedDepartment: "风湿免疫科",
+      notificationStatus: "sent",
+      notificationAttempts: 1,
+    });
     expect(repository.notifications[0]).toMatchObject({ recordId: "PY-20260907-0001", status: "sent", attempt: 1 });
   });
 

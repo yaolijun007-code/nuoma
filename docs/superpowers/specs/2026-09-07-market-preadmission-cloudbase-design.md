@@ -6,7 +6,7 @@
 
 ## 1. 建设目标
 
-在现有 CloudBase 项目中增加一套需要登录的内部市场工作台。市场人员能够用姓名、手机号或住院号查找患者，核对其住院次数、主要诊断和每次住院起止时间，随后登记拟住院日期、拟入科室、主要问题与联系结果。登记保存成功后，云函数向指定企业微信群发送一条预住院提醒。
+在现有 CloudBase 项目中增加一套需要登录的内部市场工作台。市场人员能够用姓名、手机号或住院号查找患者，核对其住院次数、主要诊断和每次住院起止时间，随后登记患者类型、拟住院日期、拟住院科室、主要问题与联系结果。登记保存成功后，云函数向指定企业微信群发送一条预住院提醒。
 
 本版本只解决“查历史—登记—推送—追踪状态”这一条主流程，不建设完整 CRM，不包含收费、医保、地址、家庭成员、病历原文或临床诊断决策。
 
@@ -15,7 +15,7 @@
 1. 系统仅供内部账号登录后使用，匿名用户不得搜索、查看或登记患者数据。
 2. 搜索结果不能仅凭姓名自动认定为同一患者。姓名重复、手机号重复、住院号冲突或身份风险记录必须提示市场人员人工核对。
 3. 患者详情只展示：姓名、性别、年龄、主要联系电话、住院号、住院次数、诊断统计以及各次住院的入院日期、出院日期、科室和主要诊断。
-4. 预住院登记至少包括：计划住院日期、拟入科室、主要问题、联系结果；患者姓名和联系方式从患者档案带入，允许在登记时核对和修正本次联系电话，但不回写历史主档。
+4. 预住院登记至少包括：患者类型、计划住院日期、拟住院科室、主要问题、联系结果；患者姓名和联系方式从患者档案带入，允许在登记时核对和修正本次联系电话，但不回写历史主档。
 5. 先持久化登记记录，再尝试群通知。群通知失败不回滚登记；页面明确显示“推送失败”，并允许有权限人员重试。
 6. 同一个 `clientSubmissionId` 只创建一条登记记录。已经推送成功的记录不得因重复点击再次推送。
 7. 按用户明确要求，企业微信群消息包含患者完整姓名和完整联系电话。群消息不包含详细住院史、全部诊断、费用、住址或其他无关健康信息。
@@ -55,7 +55,7 @@
 
 搜索区只保留一个输入框，支持姓名、手机号、住院号；结果卡片显示足够区分患者的信息和身份风险提示。用户选定患者后进入详情，不自动选择同名记录。
 
-搜索区同时提供“新患者首次登记”入口。新患者只采集本次业务必需的姓名、联系方式和可选性别/年龄，提交预住院时以幂等标识建立可再次查询的零住院史档案。
+搜索区同时提供醒目的琥珀色“新患者首次登记”提示卡。新患者只采集本次业务必需的姓名、联系方式和可选性别/年龄，提交预住院时以幂等标识建立可再次查询的零住院史档案。
 
 患者详情上部为精简身份卡，下部为按时间倒序的住院记录表；手机窄屏改为纵向卡片。诊断统计与住院时间使用明确字段名，不把缺失出院日期推断为仍在住院。
 
@@ -96,7 +96,7 @@
 
 ### `hospital_preadmissions`
 
-`recordId`、`clientSubmissionId`、`patientId`、`patientSnapshot`、`contactPhone`、`plannedAdmissionDate`、`intendedDepartment`、`mainProblem`、`contactResult`、`notes`、`createdByUid`、`createdByName`、`createdAt`、`updatedAt`、`notificationStatus` (`pending`/`sending`/`sent`/`failed`/`not_configured`/`delivery_unknown`)、`notificationAttempts`、`lastNotificationAt`、`lastNotificationErrorCode`。
+`recordId`、`clientSubmissionId`、`patientId`、`patientSnapshot`、`contactPhone`、`patientType`、`plannedAdmissionDate`、`intendedDepartment`、`mainProblem`、`contactResult`、`notes`、`createdByUid`、`createdByName`、`createdAt`、`updatedAt`、`notificationStatus` (`pending`/`sending`/`sent`/`failed`/`not_configured`/`delivery_unknown`)、`notificationAttempts`、`lastNotificationAt`、`lastNotificationErrorCode`。`patientType` 只允许城镇职工医保、低保人员医保、普通居民医保、特困供养人员医保、自费；`intendedDepartment` 只允许风湿免疫科、康复科、老年医学科、住院内一科、住院外一科。
 
 ### `hospital_preadmission_notification_logs`
 
@@ -123,7 +123,7 @@
 
 机器人地址仅保存在云函数环境变量 `JSMZ_PREADMISSION_WECOM_WEBHOOK_URL`，不提交到 Git、不写入前端、不写日志。发送前校验 HTTPS、企业微信域名、固定接口路径和非空 key。
 
-消息字段：预住院登记标题、登记编号、患者完整姓名、完整联系电话、性别/年龄、住院次数、最近一次住院时间、计划住院日期、拟入科室、主要问题、联系结果、登记人、登记时间、待确认状态。
+消息字段：预住院登记标题、登记编号、患者完整姓名、完整联系电话、性别/年龄、住院次数、最近一次住院时间、患者类型、计划住院日期、拟住院科室、主要问题、联系结果、登记人、登记时间、待确认状态。
 
 所有可编辑文本移除换行和 Markdown 控制字符并限制长度。网络请求设置超时，企业微信返回非零 `errcode` 时记为失败。日志只保留错误代码和发送状态。
 

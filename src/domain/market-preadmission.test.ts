@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   buildPreadmissionMarkdown,
+  intendedDepartmentOptions,
   normalizePatientQuery,
   notificationStatusLabel,
+  patientTypeOptions,
   validatePreadmissionDraft,
   type PreadmissionMessageModel,
 } from "./market-preadmission";
@@ -11,8 +13,9 @@ const validDraft = {
   clientSubmissionId: "ad1a5d26-7f3d-4a81-8230-fc7ff5fd14c7",
   patientId: "P-001",
   contactPhone: "13800138000",
+  patientType: "普通居民医保" as const,
   plannedAdmissionDate: "2026-09-20",
-  intendedDepartment: "消化内科",
+  intendedDepartment: "风湿免疫科" as const,
   mainProblem: "反复腹胀，希望进一步评估",
   contactResult: "patient_interested" as const,
   notes: "上午联系方便",
@@ -27,8 +30,9 @@ const message: PreadmissionMessageModel = {
   admissionCount: 3,
   latestAdmissionDate: "2026-05-02",
   latestDischargeDate: "2026-05-08",
+  patientType: "普通居民医保",
   plannedAdmissionDate: "2026-09-20",
-  intendedDepartment: "消化内科",
+  intendedDepartment: "风湿免疫科",
   mainProblem: "反复腹胀，希望进一步评估",
   contactResult: "patient_interested",
   createdByName: "市场一组",
@@ -47,6 +51,14 @@ describe("market preadmission domain", () => {
   it("validates and trims a complete preadmission draft", () => {
     expect(validatePreadmissionDraft(validDraft)).toEqual(validDraft);
     expect(validatePreadmissionDraft({ ...validDraft, notes: "  上午联系方便  " }).notes).toBe("上午联系方便");
+  });
+
+  it("limits patient type and intended department to the approved option lists", () => {
+    expect(patientTypeOptions).toEqual(["城镇职工医保", "低保人员医保", "普通居民医保", "特困供养人员医保", "自费"]);
+    expect(intendedDepartmentOptions).toEqual(["风湿免疫科", "康复科", "老年医学科", "住院内一科", "住院外一科"]);
+    expect(() => validatePreadmissionDraft({ ...validDraft, patientType: "" as never })).toThrow("请选择患者类型");
+    expect(() => validatePreadmissionDraft({ ...validDraft, patientType: "商业保险" as never })).toThrow("患者类型无效");
+    expect(() => validatePreadmissionDraft({ ...validDraft, intendedDepartment: "消化内科" as never })).toThrow("拟住院科室无效");
   });
 
   it("accepts a validated new-patient profile when no historical patient was selected", () => {
@@ -73,6 +85,8 @@ describe("market preadmission domain", () => {
     const markdown = buildPreadmissionMarkdown(message);
     expect(markdown).toContain("**患者姓名**：张三");
     expect(markdown).toContain("**联系电话**：13800138000");
+    expect(markdown).toContain("**患者类型**：普通居民医保");
+    expect(markdown).toContain("**拟住院科室**：风湿免疫科");
     expect(markdown).toContain("待医务人员确认");
     expect(markdown).toContain("05月02日 至 05月08日");
     expect(markdown).not.toContain("住院费用");

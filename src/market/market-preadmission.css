@@ -108,14 +108,19 @@
   .search-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
   .search-input-wrap { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 13px; border-radius: 7px; color: var(--market-muted); }
   .search-input-wrap:focus-within { border-color: var(--market-teal); box-shadow: 0 0 0 3px rgba(22, 117, 111, .12); }
-  .search-input-wrap input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--market-ink); }
+  .search-input-wrap input { min-width: 0; min-height: 44px; flex: 1; border: 0; outline: 0; background: transparent; color: var(--market-ink); }
   .search-row .market-primary-button { min-width: 110px; }
 
   .market-alert { display: flex; align-items: flex-start; gap: 9px; margin-top: 16px; padding: 12px 14px; border: 1px solid; font-size: 14px; line-height: 1.55; }
   .market-alert.error { border-color: #edc0be; background: var(--market-red-pale); color: var(--market-red); }
   .market-alert.warning { border-color: #ead29c; background: var(--market-amber-pale); color: var(--market-amber); }
   .market-alert.info { border-color: #afd8d3; background: var(--market-teal-pale); color: var(--market-teal-dark); }
-  .new-patient-entry { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--market-line); color: var(--market-muted); font-size: 14px; }
+  .new-patient-entry { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px; margin-top: 20px; padding: 16px; border: 1px solid #dfbd75; border-left: 5px solid #d27a0a; background: var(--market-amber-pale); color: #744306; font-size: 14px; }
+  .new-patient-entry-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: #f4cf83; color: #744306; }
+  .new-patient-entry-copy strong, .new-patient-entry-copy small { display: block; }
+  .new-patient-entry-copy strong { font-size: 16px; }
+  .new-patient-entry-copy small { margin-top: 4px; color: #744f20; font-size: 13px; line-height: 1.5; }
+  .new-patient-entry .market-secondary-button { background: #fffaf0; color: #744306; }
   .new-patient-form { margin-top: 20px; padding: 20px; border: 1px solid var(--market-line); background: var(--market-soft); }
   .new-patient-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
   .new-patient-actions { display: flex; align-items: center; justify-content: flex-end; gap: 18px; margin-top: 20px; }
@@ -220,7 +225,9 @@
     .section-heading > p { margin-top: 7px; }
     .search-row { grid-template-columns: 1fr; }
     .search-row .market-primary-button { width: 100%; }
-    .new-patient-entry, .new-patient-actions { align-items: stretch; flex-direction: column; }
+    .new-patient-entry { grid-template-columns: 44px minmax(0, 1fr); align-items: center; }
+    .new-patient-entry .market-secondary-button { grid-column: 1 / -1; }
+    .new-patient-actions { align-items: stretch; flex-direction: column; }
     .new-patient-grid { grid-template-columns: 1fr; }
     .new-patient-actions .market-primary-button, .new-patient-entry .market-secondary-button { width: 100%; }
     .results-heading { display: block; }
@@ -239,6 +246,23 @@
     .record-row { grid-template-columns: 1fr auto 44px; gap: 9px; }
     .record-row > div:nth-child(2) { display: none; }
     .status-badge { max-width: 120px; }
+  }
+
+  @media (max-width: 380px) {
+    .market-login-shell { padding-inline: 12px; }
+    .market-login-card { padding-inline: 18px; }
+    .market-topbar-inner, .market-main { width: min(100% - 16px, 1060px); }
+    .market-section { padding-inline: 13px; }
+    .market-step-rail li { font-size: 11px; }
+    .market-step-rail li > span { display: none; }
+    .new-patient-entry { grid-template-columns: 1fr; }
+    .new-patient-entry-icon { display: none; }
+  }
+
+  @media (pointer: coarse) {
+    .market-primary-button, .market-secondary-button, .market-text-button, .market-icon-button,
+    .market-topbar nav button, .market-user button { min-height: 48px; }
+    .market-login-form input, .form-field input, .form-field select, .search-input-wrap { min-height: 48px; }
   }
 
   @media (prefers-reduced-motion: reduce) {

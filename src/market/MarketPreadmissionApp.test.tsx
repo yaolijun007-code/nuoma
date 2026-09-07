@@ -39,8 +39,9 @@ const failedRecord: PreadmissionRecord = {
   patientName: "张三",
   patientSnapshot: { patientCode: "0001", hospitalNo: "202600123", sex: "男", age: 62, admissionCount: 3 },
   contactPhone: "13800138000",
+  patientType: "普通居民医保",
   plannedAdmissionDate: "2026-09-20",
-  intendedDepartment: "消化内科",
+  intendedDepartment: "风湿免疫科",
   mainProblem: "反复腹胀，希望进一步评估",
   contactResult: "patient_interested",
   notes: "",
@@ -96,7 +97,7 @@ describe("market preadmission app", () => {
     expect(await screen.findByText("共住院 3 次")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "住院记录" })).toBeInTheDocument();
     expect(screen.getByText("出院日期未记录")).toBeInTheDocument();
-    expect(screen.queryByText(/费用|地址|医保/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/住院费用|家庭地址|医保编号/)).not.toBeInTheDocument();
   });
 
   it("lets staff register a new patient without historical admissions", async () => {
@@ -112,6 +113,8 @@ describe("market preadmission app", () => {
     const api = fakeApi({ createPreadmission: vi.fn().mockResolvedValue(newRecord) });
     render(<MarketPreadmissionApp api={api} />);
     await screen.findByText("市场一组");
+    expect(screen.getByRole("note", { name: "新患者首次登记提示" })).toHaveClass("is-prominent");
+    expect(screen.getByText("首次来院或查不到档案？")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "新患者首次登记" }));
     await user.type(screen.getByLabelText("新患者姓名"), "李四");
     await user.type(screen.getByLabelText("新患者联系电话"), "13900139000");
@@ -119,14 +122,23 @@ describe("market preadmission app", () => {
     await user.type(screen.getByLabelText("新患者年龄"), "47");
     await user.click(screen.getByRole("button", { name: "继续填写预住院信息" }));
     expect(await screen.findByText("暂无既往住院记录，新患者档案将在提交时建立")).toBeInTheDocument();
+    expect([...screen.getByLabelText("患者类型").querySelectorAll("option")].map((option) => option.textContent)).toEqual([
+      "请选择患者类型", "城镇职工医保", "低保人员医保", "普通居民医保", "特困供养人员医保", "自费",
+    ]);
+    expect([...screen.getByLabelText("拟住院科室").querySelectorAll("option")].map((option) => option.textContent)).toEqual([
+      "请选择拟住院科室", "风湿免疫科", "康复科", "老年医学科", "住院内一科", "住院外一科",
+    ]);
+    await user.selectOptions(screen.getByLabelText("患者类型"), "普通居民医保");
     fireEvent.change(screen.getByLabelText("计划住院日期"), { target: { value: "2026-09-20" } });
-    await user.type(screen.getByLabelText("拟入科室"), "消化内科");
+    await user.selectOptions(screen.getByLabelText("拟住院科室"), "风湿免疫科");
     await user.type(screen.getByLabelText("主要问题"), "反复腹胀，希望进一步评估");
     await user.selectOptions(screen.getByLabelText("联系结果"), "patient_interested");
     await user.click(screen.getByRole("button", { name: "保存并推送到企业微信群" }));
     expect(api.createPreadmission).toHaveBeenCalledWith(expect.objectContaining({
       patientId: "",
       contactPhone: "13900139000",
+      patientType: "普通居民医保",
+      intendedDepartment: "风湿免疫科",
       newPatient: { name: "李四", sex: "女", age: 47 },
     }));
   });
@@ -140,8 +152,9 @@ describe("market preadmission app", () => {
     await user.click(screen.getByRole("button", { name: "查询" }));
     await user.click(await screen.findByRole("button", { name: /选择患者 张三/ }));
     await screen.findByRole("heading", { name: "预住院登记" });
+    await user.selectOptions(screen.getByLabelText("患者类型"), "普通居民医保");
     fireEvent.change(screen.getByLabelText("计划住院日期"), { target: { value: "2026-09-20" } });
-    await user.type(screen.getByLabelText("拟入科室"), "消化内科");
+    await user.selectOptions(screen.getByLabelText("拟住院科室"), "风湿免疫科");
     await user.type(screen.getByLabelText("主要问题"), "反复腹胀，希望进一步评估");
     await user.selectOptions(screen.getByLabelText("联系结果"), "patient_interested");
     await user.click(screen.getByRole("button", { name: "保存并推送到企业微信群" }));
@@ -161,8 +174,9 @@ describe("market preadmission app", () => {
     await user.type(screen.getByLabelText("患者姓名、手机号或住院号"), "张三");
     await user.click(screen.getByRole("button", { name: "查询" }));
     await user.click(await screen.findByRole("button", { name: /选择患者 张三/ }));
+    await user.selectOptions(screen.getByLabelText("患者类型"), "普通居民医保");
     fireEvent.change(screen.getByLabelText("计划住院日期"), { target: { value: "2026-09-20" } });
-    await user.type(screen.getByLabelText("拟入科室"), "消化内科");
+    await user.selectOptions(screen.getByLabelText("拟住院科室"), "风湿免疫科");
     await user.type(screen.getByLabelText("主要问题"), "反复腹胀，希望进一步评估");
     await user.selectOptions(screen.getByLabelText("联系结果"), "patient_interested");
     const submit = screen.getByRole("button", { name: "保存并推送到企业微信群" });

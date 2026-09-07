@@ -17,10 +17,14 @@ import {
 } from "lucide-react";
 import {
   contactResultLabel,
+  intendedDepartmentOptions,
   notificationStatusLabel,
+  patientTypeOptions,
   type ContactResult,
+  type IntendedDepartment,
   type MarketUser,
   type NewPatientDraft,
+  type PatientType,
   type PatientHistory,
   type PatientSummary,
   type PreadmissionRecord,
@@ -37,8 +41,9 @@ interface MarketPreadmissionAppProps {
 
 interface FormState {
   contactPhone: string;
+  patientType: PatientType | "";
   plannedAdmissionDate: string;
-  intendedDepartment: string;
+  intendedDepartment: IntendedDepartment | "";
   mainProblem: string;
   contactResult: ContactResult | "";
   notes: string;
@@ -46,6 +51,7 @@ interface FormState {
 
 const emptyForm: FormState = {
   contactPhone: "",
+  patientType: "",
   plannedAdmissionDate: "",
   intendedDepartment: "",
   mainProblem: "",
@@ -287,12 +293,22 @@ function PreadmissionForm({
           <small>群消息将按工作要求显示完整号码，请提交前再次核对。</small>
         </div>
         <div className="form-field">
+          <label htmlFor="patient-type">患者类型</label>
+          <select id="patient-type" value={form.patientType} onChange={(event) => onChange("patientType", event.target.value)} disabled={busy || locked} required>
+            <option value="">请选择患者类型</option>
+            {patientTypeOptions.map((option) => <option value={option} key={option}>{option}</option>)}
+          </select>
+        </div>
+        <div className="form-field">
           <label htmlFor="planned-date">计划住院日期</label>
           <input id="planned-date" type="date" value={form.plannedAdmissionDate} onChange={(event) => onChange("plannedAdmissionDate", event.target.value)} disabled={busy || locked} required />
         </div>
         <div className="form-field">
-          <label htmlFor="intended-department">拟入科室</label>
-          <input id="intended-department" value={form.intendedDepartment} onChange={(event) => onChange("intendedDepartment", event.target.value)} maxLength={60} placeholder="例如：消化内科" disabled={busy || locked} required />
+          <label htmlFor="intended-department">拟住院科室</label>
+          <select id="intended-department" value={form.intendedDepartment} onChange={(event) => onChange("intendedDepartment", event.target.value)} disabled={busy || locked} required>
+            <option value="">请选择拟住院科室</option>
+            {intendedDepartmentOptions.map((option) => <option value={option} key={option}>{option}</option>)}
+          </select>
         </div>
         <div className="form-field">
           <label htmlFor="contact-result">联系结果</label>
@@ -507,7 +523,7 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!api || !history || !form.contactResult) return;
+    if (!api || !history || !form.patientType || !form.intendedDepartment || !form.contactResult) return;
     setSubmitting(true);
     setSubmissionError("");
     try {
@@ -515,6 +531,7 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
         clientSubmissionId: submissionId,
         patientId: history.patient.patientId,
         contactPhone: form.contactPhone,
+        patientType: form.patientType,
         plannedAdmissionDate: form.plannedAdmissionDate,
         intendedDepartment: form.intendedDepartment,
         mainProblem: form.mainProblem,
@@ -595,7 +612,11 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
                 </div>
               </form>
               {!newPatientMode ? (
-                <div className="new-patient-entry"><span>查不到患者或从未住过院？</span><button type="button" className="market-secondary-button" onClick={() => { setNewPatientMode(true); setCandidates([]); setSearchError(""); }}><UserPlus size={17} />新患者首次登记</button></div>
+                <aside className="new-patient-entry is-prominent" role="note" aria-label="新患者首次登记提示">
+                  <span className="new-patient-entry-icon" aria-hidden="true"><UserPlus size={22} /></span>
+                  <span className="new-patient-entry-copy"><strong>首次来院或查不到档案？</strong><small>无需既往住院记录，可直接建立新患者资料。</small></span>
+                  <button type="button" className="market-secondary-button" onClick={() => { setNewPatientMode(true); setCandidates([]); setSearchError(""); }}><UserPlus size={17} aria-hidden="true" />新患者首次登记</button>
+                </aside>
               ) : <NewPatientForm onCancel={() => setNewPatientMode(false)} onContinue={continueNewPatient} />}
               {searchError ? <div className="market-alert error" role="alert">{searchError}</div> : null}
               {candidates.length && !history ? (

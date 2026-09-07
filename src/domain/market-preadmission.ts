@@ -3,6 +3,25 @@ export type PatientQueryKind = "name" | "phone" | "hospitalNo" | "patientId";
 export type NotificationStatus = "pending" | "sending" | "sent" | "failed" | "not_configured" | "delivery_unknown";
 export type ContactResult = "patient_interested" | "family_interested" | "considering" | "no_answer" | "declined" | "other";
 
+export const patientTypeOptions = [
+  "城镇职工医保",
+  "低保人员医保",
+  "普通居民医保",
+  "特困供养人员医保",
+  "自费",
+] as const;
+
+export const intendedDepartmentOptions = [
+  "风湿免疫科",
+  "康复科",
+  "老年医学科",
+  "住院内一科",
+  "住院外一科",
+] as const;
+
+export type PatientType = typeof patientTypeOptions[number];
+export type IntendedDepartment = typeof intendedDepartmentOptions[number];
+
 export interface MarketUser {
   uid: string;
   username: string;
@@ -57,8 +76,9 @@ export interface PreadmissionDraft {
   clientSubmissionId: string;
   patientId: string;
   contactPhone: string;
+  patientType: PatientType;
   plannedAdmissionDate: string;
-  intendedDepartment: string;
+  intendedDepartment: IntendedDepartment;
   mainProblem: string;
   contactResult: ContactResult;
   notes: string;
@@ -80,8 +100,9 @@ export interface PreadmissionRecord {
     latestDischargeDate?: string;
   };
   contactPhone: string;
+  patientType: PatientType;
   plannedAdmissionDate: string;
-  intendedDepartment: string;
+  intendedDepartment: IntendedDepartment;
   mainProblem: string;
   contactResult: ContactResult;
   notes: string;
@@ -108,8 +129,9 @@ export interface PreadmissionMessageModel {
   admissionCount: number;
   latestAdmissionDate?: string;
   latestDischargeDate?: string;
+  patientType: PatientType;
   plannedAdmissionDate: string;
-  intendedDepartment: string;
+  intendedDepartment: IntendedDepartment;
   mainProblem: string;
   contactResult: ContactResult;
   createdByName: string;
@@ -126,6 +148,8 @@ const contactResults: Record<ContactResult, string> = {
 };
 
 const allowedContactResults = new Set(Object.keys(contactResults));
+const allowedPatientTypes = new Set<string>(patientTypeOptions);
+const allowedIntendedDepartments = new Set<string>(intendedDepartmentOptions);
 
 export function safeInline(value: unknown, limit = 120) {
   return String(value ?? "")
@@ -186,10 +210,15 @@ export function validatePreadmissionDraft(input: PreadmissionDraft): Preadmissio
   if (patientId && newPatient) throw new Error("历史患者与新患者资料不能同时提交");
   const contactPhone = String(input?.contactPhone ?? "").replace(/\s+/g, "").trim();
   if (!/^[0-9+()\-]{5,30}$/.test(contactPhone)) throw new Error("联系方式格式不正确");
+  const patientType = safeInline(input?.patientType, 30);
+  if (!patientType) throw new Error("请选择患者类型");
+  if (!allowedPatientTypes.has(patientType)) throw new Error("患者类型无效");
   const plannedAdmissionDate = String(input?.plannedAdmissionDate ?? "").trim();
   if (!plannedAdmissionDate) throw new Error("请选择计划住院日期");
   if (!validIsoDate(plannedAdmissionDate)) throw new Error("计划住院日期格式不正确");
-  const intendedDepartment = requiredText(input?.intendedDepartment, "拟入科室", 60);
+  const intendedDepartment = safeInline(input?.intendedDepartment, 30);
+  if (!intendedDepartment) throw new Error("请选择拟住院科室");
+  if (!allowedIntendedDepartments.has(intendedDepartment)) throw new Error("拟住院科室无效");
   const mainProblem = requiredText(input?.mainProblem, "主要问题", 500);
   const contactResult = String(input?.contactResult ?? "") as ContactResult;
   if (!allowedContactResults.has(contactResult)) throw new Error("请选择联系结果");
@@ -198,8 +227,9 @@ export function validatePreadmissionDraft(input: PreadmissionDraft): Preadmissio
     clientSubmissionId,
     patientId,
     contactPhone,
+    patientType: patientType as PatientType,
     plannedAdmissionDate,
-    intendedDepartment,
+    intendedDepartment: intendedDepartment as IntendedDepartment,
     mainProblem,
     contactResult,
     notes,
@@ -240,9 +270,10 @@ export function buildPreadmissionMarkdown(model: PreadmissionMessageModel) {
     `**联系电话**：${safeInline(model.contactPhone, 30)}`,
     `**基本信息**：${safeInline(model.sex, 10) || "未记录"}｜${age}`,
     `**既往住院**：${Math.max(0, Math.floor(Number(model.admissionCount) || 0))} 次｜最近 ${latestStay}`,
+    `**患者类型**：${safeInline(model.patientType, 30) || "未记录"}`,
     "",
     `**计划住院日期**：${safeInline(model.plannedAdmissionDate, 10)}`,
-    `**拟入科室**：${safeInline(model.intendedDepartment, 60)}`,
+    `**拟住院科室**：${safeInline(model.intendedDepartment, 30)}`,
     `**主要问题**：${safeInline(model.mainProblem, 500)}`,
     `**联系结果**：${contactResults[model.contactResult] || "其他"}`,
     "",
