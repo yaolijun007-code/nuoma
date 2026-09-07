@@ -51,6 +51,11 @@ describe("CloudBase function configuration", () => {
     expect(resolveBrandBase("hospital")).toBe("/health-survey/");
     expect(resolveBrandBase("hospital-female")).toBe("/women-health-survey/");
     expect(resolveBrandBase("nuoma-yuanyi")).toBe("/nuoma-yuanyi-survey/");
+    expect(resolveBrandMetadata("market-preadmission")).toEqual({
+      base: "/market-preadmission/",
+      title: "患者预住院登记｜建始民族医院",
+      description: "建始民族医院患者预住院登记系统",
+    });
     expect(resolveBrandMetadata("hospital-female")).toMatchObject({
       title: "女性健康与功能状态问卷｜建始民族医院",
       description: "建始民族医院女性健康与功能状态问卷",

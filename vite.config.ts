@@ -17,6 +17,11 @@ const brandBuilds = {
     title: "健康与功能状态问卷｜诺玛元一",
     description: "诺玛元一健康与功能状态问卷",
   },
+  "market-preadmission": {
+    base: "/market-preadmission/",
+    title: "患者预住院登记｜建始民族医院",
+    description: "建始民族医院患者预住院登记系统",
+  },
 } as const;
 
 export function resolveBrandMetadata(id = "hospital") {
