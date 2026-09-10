@@ -21,6 +21,7 @@ import {
   intendedDepartmentOptions,
   notificationStatusLabel,
   patientTypeOptions,
+  validatePreadmissionDraft,
   type ContactResult,
   type IntendedDepartment,
   type MarketUser,
@@ -28,6 +29,7 @@ import {
   type PatientType,
   type PatientHistory,
   type PatientSummary,
+  type PreadmissionDraft,
   type PreadmissionRecord,
   type PreadmissionListItem,
 } from "../domain/market-preadmission";
@@ -92,6 +94,19 @@ function dateTimeLabel(value: string) {
 
 function statusClass(status: PreadmissionRecord["notificationStatus"]) {
   return `status-badge status-${status.replace("_", "-")}`;
+}
+
+function preadmissionErrorField(error: string): keyof FormState | null {
+  const mappings: Array<[string, keyof FormState]> = [
+    ["联系方式", "contactPhone"],
+    ["患者类型", "patientType"],
+    ["计划住院日期", "plannedAdmissionDate"],
+    ["拟住院科室", "intendedDepartment"],
+    ["主要问题", "mainProblem"],
+    ["联系结果", "contactResult"],
+    ["备注", "notes"],
+  ];
+  return mappings.find(([label]) => error.includes(label))?.[1] ?? null;
 }
 
 function toPreadmissionListItem(record: PreadmissionRecord): PreadmissionListItem {
@@ -409,6 +424,7 @@ function PreadmissionForm({
   result,
   onRetry,
   onNewPatient,
+  error,
 }: {
   history: PatientHistory;
   form: FormState;
@@ -418,41 +434,47 @@ function PreadmissionForm({
   result: PreadmissionRecord | null;
   onRetry: () => void;
   onNewPatient: () => void;
+  error: string;
 }) {
   const locked = Boolean(result);
+  const errorField = preadmissionErrorField(error);
+  const errorAttributes = (field: keyof FormState, helperId?: string) => ({
+    "aria-invalid": errorField === field || undefined,
+    "aria-describedby": [helperId, errorField === field ? "preadmission-submit-error" : ""].filter(Boolean).join(" ") || undefined,
+  });
   return (
     <section className="market-section preadmission-section" aria-labelledby="preadmission-title">
       <div className="section-heading">
         <div><p className="market-kicker">第 3 步</p><h2 id="preadmission-title">预住院登记</h2></div>
         <p>患者：<strong>{history.patient.name}</strong></p>
       </div>
-      <form className="preadmission-form" onSubmit={onSubmit}>
+      <form className="preadmission-form" onSubmit={onSubmit} aria-busy={busy}>
         <div className="form-field">
           <label htmlFor="contact-phone">本次联系电话</label>
-          <input id="contact-phone" value={form.contactPhone} onChange={(event) => onChange("contactPhone", event.target.value)} inputMode="tel" autoComplete="tel" disabled={busy || locked} required />
-          <small>群消息将按工作要求显示完整号码，请提交前再次核对。</small>
+          <input id="contact-phone" value={form.contactPhone} onChange={(event) => onChange("contactPhone", event.target.value)} inputMode="tel" autoComplete="tel" disabled={busy || locked} required {...errorAttributes("contactPhone", "contact-phone-help")} />
+          <small id="contact-phone-help">群消息将按工作要求显示完整号码，请提交前再次核对。</small>
         </div>
         <div className="form-field">
           <label htmlFor="patient-type">患者类型</label>
-          <select id="patient-type" value={form.patientType} onChange={(event) => onChange("patientType", event.target.value)} disabled={busy || locked} required>
+          <select id="patient-type" value={form.patientType} onChange={(event) => onChange("patientType", event.target.value)} disabled={busy || locked} required {...errorAttributes("patientType")}>
             <option value="">请选择患者类型</option>
             {patientTypeOptions.map((option) => <option value={option} key={option}>{option}</option>)}
           </select>
         </div>
         <div className="form-field">
           <label htmlFor="planned-date">计划住院日期</label>
-          <input id="planned-date" type="date" value={form.plannedAdmissionDate} onChange={(event) => onChange("plannedAdmissionDate", event.target.value)} disabled={busy || locked} required />
+          <input id="planned-date" type="date" value={form.plannedAdmissionDate} onChange={(event) => onChange("plannedAdmissionDate", event.target.value)} disabled={busy || locked} required {...errorAttributes("plannedAdmissionDate")} />
         </div>
         <div className="form-field">
           <label htmlFor="intended-department">拟住院科室</label>
-          <select id="intended-department" value={form.intendedDepartment} onChange={(event) => onChange("intendedDepartment", event.target.value)} disabled={busy || locked} required>
+          <select id="intended-department" value={form.intendedDepartment} onChange={(event) => onChange("intendedDepartment", event.target.value)} disabled={busy || locked} required {...errorAttributes("intendedDepartment")}>
             <option value="">请选择拟住院科室</option>
             {intendedDepartmentOptions.map((option) => <option value={option} key={option}>{option}</option>)}
           </select>
         </div>
         <div className="form-field">
           <label htmlFor="contact-result">联系结果</label>
-          <select id="contact-result" value={form.contactResult} onChange={(event) => onChange("contactResult", event.target.value)} disabled={busy || locked} required>
+          <select id="contact-result" value={form.contactResult} onChange={(event) => onChange("contactResult", event.target.value)} disabled={busy || locked} required {...errorAttributes("contactResult")}>
             <option value="">请选择</option>
             <option value="patient_interested">患者本人有意愿</option>
             <option value="family_interested">家属有意愿</option>
@@ -464,12 +486,13 @@ function PreadmissionForm({
         </div>
         <div className="form-field form-wide">
           <label htmlFor="main-problem">主要问题</label>
-          <textarea id="main-problem" value={form.mainProblem} onChange={(event) => onChange("mainProblem", event.target.value)} maxLength={500} rows={4} placeholder="简要记录患者当前最主要的问题和住院诉求" disabled={busy || locked} required />
+          <textarea id="main-problem" value={form.mainProblem} onChange={(event) => onChange("mainProblem", event.target.value)} maxLength={500} rows={4} placeholder="简要记录患者当前最主要的问题和住院诉求" disabled={busy || locked} required {...errorAttributes("mainProblem")} />
         </div>
         <div className="form-field form-wide">
           <label htmlFor="notes">备注（选填）</label>
-          <textarea id="notes" value={form.notes} onChange={(event) => onChange("notes", event.target.value)} maxLength={500} rows={2} placeholder="例如：适合联系的时间" disabled={busy || locked} />
+          <textarea id="notes" value={form.notes} onChange={(event) => onChange("notes", event.target.value)} maxLength={500} rows={2} placeholder="例如：适合联系的时间" disabled={busy || locked} {...errorAttributes("notes")} />
         </div>
+        {error ? <div id="preadmission-submit-error" className="market-alert error form-wide preadmission-form-error" role="alert"><AlertTriangle size={18} aria-hidden="true" /><span>{error}</span></div> : null}
         <div className="form-actions form-wide">
           <p><Send size={17} />保存成功后自动推送到授权的企业微信群</p>
           <button type="submit" className="market-primary-button" disabled={busy || locked}>
@@ -495,16 +518,19 @@ function PreadmissionForm({
   );
 }
 
-function RecordsView({ records, loading, error, onReload, onRetry }: {
+function RecordsView({ records, loading, error, actionError, busy, onReload, onRetry }: {
   records: PreadmissionListItem[];
   loading: boolean;
   error: string;
+  actionError: string;
+  busy: boolean;
   onReload: () => void;
   onRetry: (record: PreadmissionListItem) => void;
 }) {
   return (
-    <section className="market-section records-section" aria-labelledby="records-title">
+    <section className="market-section records-section" aria-labelledby="records-title" aria-busy={loading || busy}>
       <div className="section-heading"><div><p className="market-kicker">工作记录</p><h2 id="records-title">我的登记</h2></div><span>{records.length} 条</span></div>
+      {actionError ? <div className="market-alert error records-action-error" role="alert"><AlertTriangle size={18} aria-hidden="true" /><span>{actionError}</span></div> : null}
       {loading ? <p className="empty-copy">正在加载…</p> : error ? (
         <div className="market-alert error records-error" role="alert"><AlertTriangle size={18} /><span>{error}</span><button type="button" className="market-secondary-button" onClick={onReload}>重新加载登记记录</button></div>
       ) : records.length ? (
@@ -517,7 +543,7 @@ function RecordsView({ records, loading, error, onReload, onRetry }: {
               <div><small>登记时间</small><span>{dateTimeLabel(record.createdAt)}</span></div>
               <span className={statusClass(record.notificationStatus)}>{notificationStatusLabel(record.notificationStatus)}</span>
               {["failed", "not_configured"].includes(record.notificationStatus) ? (
-                <button type="button" className="market-icon-button" aria-label={`重新推送 ${record.patientName}`} onClick={() => onRetry(record)}><RefreshCw size={18} /></button>
+                <button type="button" className="market-icon-button" aria-label={`重新推送 ${record.patientName}`} onClick={() => onRetry(record)} disabled={busy}><RefreshCw size={18} aria-hidden="true" /></button>
               ) : <span className="record-spacer" />}
             </article>
           ))}
@@ -607,6 +633,7 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
     setNewPatient(null);
     setNewPatientMode(false);
     setResult(null);
+    setSubmissionError("");
     try {
       const found = await api.searchPatients(query);
       setCandidates(found);
@@ -621,6 +648,7 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
     if (!api) return;
     setSearching(true);
     setSearchError("");
+    setSubmissionError("");
     try {
       const selected = await api.getPatientHistory(patient.patientId);
       setHistory(selected);
@@ -639,6 +667,7 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
     setNewPatientMode(false);
     setCandidates([]);
     setSearchError("");
+    setSubmissionError("");
     setHistory({
       patient: {
         patientId: "",
@@ -659,30 +688,41 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
     setSubmissionId(makeSubmissionId());
   };
 
-  const updateForm = (field: keyof FormState, value: string) => setForm((current) => ({ ...current, [field]: value }));
+  const updateForm = (field: keyof FormState, value: string) => {
+    setSubmissionError("");
+    setForm((current) => ({ ...current, [field]: value }));
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!api || !history || !form.patientType || !form.intendedDepartment || !form.contactResult) return;
-    setSubmitting(true);
+    if (!api || !history) return;
     setSubmissionError("");
+    const draft: PreadmissionDraft = {
+      clientSubmissionId: submissionId,
+      patientId: history.patient.patientId,
+      contactPhone: form.contactPhone,
+      patientType: form.patientType as PatientType,
+      plannedAdmissionDate: form.plannedAdmissionDate,
+      intendedDepartment: form.intendedDepartment as IntendedDepartment,
+      mainProblem: form.mainProblem,
+      contactResult: form.contactResult as ContactResult,
+      notes: form.notes,
+      ...(newPatient ? { newPatient } : {}),
+    };
+    let validatedDraft: PreadmissionDraft;
     try {
-      const saved = await api.createPreadmission({
-        clientSubmissionId: submissionId,
-        patientId: history.patient.patientId,
-        contactPhone: form.contactPhone,
-        patientType: form.patientType,
-        plannedAdmissionDate: form.plannedAdmissionDate,
-        intendedDepartment: form.intendedDepartment,
-        mainProblem: form.mainProblem,
-        contactResult: form.contactResult,
-        notes: form.notes,
-        ...(newPatient ? { newPatient } : {}),
-      });
+      validatedDraft = validatePreadmissionDraft(draft);
+    } catch (error) {
+      setSubmissionError(error instanceof Error ? error.message : "请检查登记信息后重试");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const saved = await api.createPreadmission(validatedDraft);
       setResult(saved);
       setRecords((current) => [toPreadmissionListItem(saved), ...current.filter((item) => item.recordId !== saved.recordId)]);
     } catch (error) {
-      setSubmissionError(error instanceof Error ? error.message : "登记保存失败，请稍后重试");
+      setSubmissionError(error instanceof MarketApiError ? error.message : "登记保存失败，请检查网络后重试");
     } finally { setSubmitting(false); }
   };
 
@@ -695,7 +735,7 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
       setRecords((current) => current.map((item) => item.recordId === updated.recordId ? toPreadmissionListItem(updated) : item));
       if (result?.recordId === updated.recordId) setResult(updated);
     } catch (error) {
-      setSubmissionError(error instanceof Error ? error.message : "重新推送失败，请稍后再试");
+      setSubmissionError(error instanceof MarketApiError ? error.message : "重新推送失败，请稍后再试");
     } finally { setSubmitting(false); }
   };
 
@@ -734,8 +774,8 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
         <div className="market-topbar-inner">
           <div className="market-product"><InitialMark /><div><strong>患者预住院登记</strong><span>建始民族医院</span></div></div>
           <nav aria-label="主导航">
-            <button type="button" className={view === "workspace" ? "is-active" : ""} onClick={() => setView("workspace")}>患者登记</button>
-            <button type="button" className={view === "records" ? "is-active" : ""} onClick={() => { setView("records"); void loadRecords(); }}>我的登记</button>
+            <button type="button" className={view === "workspace" ? "is-active" : ""} onClick={() => { setSubmissionError(""); setView("workspace"); }}>患者登记</button>
+            <button type="button" className={view === "records" ? "is-active" : ""} onClick={() => { setSubmissionError(""); setView("records"); void loadRecords(); }}>我的登记</button>
           </nav>
           <div className="market-user">
             <span><strong>{session.displayName}</strong><small>{session.username}</small></span>
@@ -774,12 +814,11 @@ export function MarketPreadmissionApp({ api: providedApi }: MarketPreadmissionAp
             </section>
             {history ? <PatientHistoryPanel history={history} onBack={clearPatient} /> : null}
             {history ? (
-              <PreadmissionForm history={history} form={form} onChange={updateForm} onSubmit={handleSubmit} busy={submitting} result={result} onRetry={() => result && void retry(result)} onNewPatient={clearPatient} />
+              <PreadmissionForm history={history} form={form} onChange={updateForm} onSubmit={handleSubmit} busy={submitting} result={result} onRetry={() => result && void retry(result)} onNewPatient={clearPatient} error={submissionError} />
             ) : null}
-            {submissionError ? <div className="market-alert error floating-error" role="alert">{submissionError}</div> : null}
           </>
         ) : view === "records" ? (
-          <RecordsView records={records} loading={recordsLoading} error={recordsError} onReload={() => void loadRecords()} onRetry={(record) => void retry(record)} />
+          <RecordsView records={records} loading={recordsLoading} error={recordsError} actionError={submissionError} busy={submitting} onReload={() => void loadRecords()} onRetry={(record) => void retry(record)} />
         ) : (
           <ChangePasswordView onChangePassword={changePassword} onBack={() => setView("workspace")} />
         )}

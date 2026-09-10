@@ -173,6 +173,8 @@
   .form-field textarea { resize: vertical; min-height: 80px; padding: 11px 12px; line-height: 1.6; }
   .form-field small { color: var(--market-amber); line-height: 1.5; }
   .form-wide { grid-column: 1 / -1; }
+  .preadmission-form-error { margin-top: 0; }
+  .preadmission-form-error > span { min-width: 0; overflow-wrap: anywhere; }
   .form-actions { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-top: 18px; border-top: 1px solid var(--market-line); }
   .form-actions p { display: flex; align-items: center; gap: 7px; margin: 0; color: var(--market-muted); font-size: 13px; }
   .submission-result { margin-top: 20px; padding: 16px; border: 1px solid; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
@@ -184,11 +186,11 @@
   .result-failed, .result-not_configured { border-color: #edc0be; background: var(--market-red-pale); color: var(--market-red); }
   .result-pending, .result-sending, .result-delivery_unknown { border-color: #ead29c; background: var(--market-amber-pale); color: var(--market-amber); }
   .market-secondary-button { padding: 0 15px; border: 1px solid currentColor; background: #fff; color: inherit; border-radius: 7px; }
-  .floating-error { position: sticky; bottom: 16px; z-index: 10; box-shadow: var(--market-shadow); }
-
   .records-list { border-top: 1px solid var(--market-line); }
   .records-error { align-items: center; justify-content: space-between; }
   .records-error > span { flex: 1; }
+  .records-action-error { margin: -4px 0 18px; }
+  .records-action-error > span { min-width: 0; overflow-wrap: anywhere; }
   .record-row { min-height: 82px; display: grid; grid-template-columns: minmax(160px, 1.15fr) repeat(3, minmax(110px, .8fr)) minmax(140px, auto) 44px; align-items: center; gap: 16px; padding: 14px 4px; border-bottom: 1px solid var(--market-line); }
   .record-row strong, .record-row span, .record-row small { display: block; }
   .record-row > div:first-child span, .record-row small { margin-top: 4px; color: var(--market-muted); font-size: 12px; }

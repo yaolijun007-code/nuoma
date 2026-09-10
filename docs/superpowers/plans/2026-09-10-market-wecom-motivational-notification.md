@@ -123,7 +123,7 @@ git commit -m "feat: include notes in market notification delivery"
 - Modify: `src/market/MarketPreadmissionApp.test.tsx`
 - Modify if verified necessary: `src/market/market-preadmission.css`
 
-- [ ] Add failing UI tests for notes submission, invalid historic-patient contact information being blocked before the API call, and a failed retry from “我的登记” remaining visible while the record list stays on screen.
+- [x] Add failing UI tests for notes submission, invalid historic-patient contact information being blocked before the API call, and a failed retry from “我的登记” remaining visible while the record list stays on screen.
 
 ```ts
 expect(api.createPreadmission).not.toHaveBeenCalled();
@@ -132,13 +132,13 @@ expect(screen.getByText("重新推送失败，请稍后再试")).toBeInTheDocume
 expect(screen.getByText("PY-20260907-0001")).toBeInTheDocument();
 ```
 
-- [ ] Run the focused UI test and confirm the new cases fail.
+- [x] Run the focused UI test and confirm the new cases fail.
 
 Run: `npx vitest run src/market/MarketPreadmissionApp.test.tsx`
 
 Expected: FAIL because the shared draft validator is not used client-side and retry errors are hidden in the records view.
 
-- [ ] Build a typed `PreadmissionDraft` in `handleSubmit`, validate it with `validatePreadmissionDraft`, show the exact safe validation message, and avoid the API request when validation fails.
+- [x] Build a typed `PreadmissionDraft` in `handleSubmit`, validate it with `validatePreadmissionDraft`, show the exact safe validation message, and avoid the API request when validation fails.
 
 ```ts
 const draft: PreadmissionDraft = {
@@ -162,17 +162,17 @@ try {
 }
 ```
 
-- [ ] Render submission errors inside `PreadmissionForm` immediately before its action area and pass retry action errors into `RecordsView` with `role="alert"`. Clear stale action errors when the user changes a form field or begins a new retry.
+- [x] Render submission errors inside `PreadmissionForm` immediately before its action area and pass retry action errors into `RecordsView` with `role="alert"`. Clear stale action errors when the user changes a form field or begins a new retry.
 
-- [ ] Add or adjust only the CSS required to keep the alert full-width, readable at 390px, and free of horizontal overflow; retain existing minimum control heights.
+- [x] Add or adjust only the CSS required to keep the alert full-width, readable at 390px, and free of horizontal overflow; retain existing minimum control heights.
 
-- [ ] Re-run the focused UI test and confirm it passes.
+- [x] Re-run the focused UI test and confirm it passes.
 
 Run: `npx vitest run src/market/MarketPreadmissionApp.test.tsx`
 
 Expected: PASS.
 
-- [ ] Commit the UI reliability change.
+- [x] Commit the UI reliability change.
 
 ```bash
 git add src/market/MarketPreadmissionApp.tsx src/market/MarketPreadmissionApp.test.tsx src/market/market-preadmission.css

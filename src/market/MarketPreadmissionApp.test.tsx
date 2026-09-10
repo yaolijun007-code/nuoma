@@ -134,14 +134,40 @@ describe("market preadmission app", () => {
     await user.selectOptions(screen.getByLabelText("拟住院科室"), "风湿免疫科");
     await user.type(screen.getByLabelText("主要问题"), "反复腹胀，希望进一步评估");
     await user.selectOptions(screen.getByLabelText("联系结果"), "patient_interested");
+    await user.type(screen.getByLabelText("备注（选填）"), "上午联系方便");
     await user.click(screen.getByRole("button", { name: "保存并推送到企业微信群" }));
     expect(api.createPreadmission).toHaveBeenCalledWith(expect.objectContaining({
       patientId: "",
       contactPhone: "13900139000",
       patientType: "普通居民医保",
       intendedDepartment: "风湿免疫科",
+      notes: "上午联系方便",
       newPatient: { name: "李四", sex: "女", age: 47 },
     }));
+  });
+
+  it("blocks an invalid historical-patient phone before calling CloudBase and links the error to the field", async () => {
+    const user = userEvent.setup();
+    const api = fakeApi();
+    render(<MarketPreadmissionApp api={api} />);
+    await screen.findByText("市场一组");
+    await user.type(screen.getByLabelText("患者姓名、手机号或住院号"), "张三");
+    await user.click(screen.getByRole("button", { name: "查询" }));
+    await user.click(await screen.findByRole("button", { name: /选择患者 张三/ }));
+    const phone = screen.getByLabelText("本次联系电话");
+    await user.clear(phone);
+    await user.type(phone, "abc");
+    await user.selectOptions(screen.getByLabelText("患者类型"), "普通居民医保");
+    fireEvent.change(screen.getByLabelText("计划住院日期"), { target: { value: "2026-09-20" } });
+    await user.selectOptions(screen.getByLabelText("拟住院科室"), "风湿免疫科");
+    await user.type(screen.getByLabelText("主要问题"), "反复腹胀，希望进一步评估");
+    await user.selectOptions(screen.getByLabelText("联系结果"), "patient_interested");
+    await user.click(screen.getByRole("button", { name: "保存并推送到企业微信群" }));
+
+    expect(api.createPreadmission).not.toHaveBeenCalled();
+    expect(await screen.findByRole("alert")).toHaveTextContent("联系方式格式不正确");
+    expect(phone).toHaveAttribute("aria-invalid", "true");
+    expect(phone).toHaveAttribute("aria-describedby", expect.stringContaining("preadmission-submit-error"));
   });
 
   it("saves a preadmission, reports notification failure, and permits retry", async () => {
@@ -209,6 +235,23 @@ describe("market preadmission app", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("登记记录加载失败");
     expect(screen.getByRole("button", { name: "重新加载登记记录" })).toBeEnabled();
     expect(screen.queryByText("还没有登记记录")).not.toBeInTheDocument();
+  });
+
+  it("shows a friendly retry error in the records view without hiding the saved record", async () => {
+    const user = userEvent.setup();
+    const api = fakeApi({
+      listPreadmissions: vi.fn().mockResolvedValue([failedRecord]),
+      retryNotification: vi.fn().mockRejectedValue(new Error("network detail")),
+    });
+    render(<MarketPreadmissionApp api={api} />);
+    await screen.findByText("市场一组");
+    await user.click(screen.getByRole("button", { name: "我的登记" }));
+    expect(await screen.findByText("PY-20260907-0001")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "重新推送 张三" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("重新推送失败，请稍后再试");
+    expect(screen.getByText("PY-20260907-0001")).toBeInTheDocument();
+    expect(screen.queryByText("network detail")).not.toBeInTheDocument();
   });
 
   it("lets the signed-in user change their own password", async () => {
