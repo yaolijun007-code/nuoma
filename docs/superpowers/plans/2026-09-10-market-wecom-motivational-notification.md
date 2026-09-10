@@ -206,16 +206,16 @@ Expected: no tracked source containing a live webhook URL or configured secret v
 
 - [x] Fix any verified low-risk, in-scope usability or registration defect with a regression test, then repeat the focused and full verification commands.
 
-- [ ] Deploy the rebuilt `marketPreadmission` CloudBase function, then deploy `dist-market-preadmission` to the existing `market-preadmission` hosting path because the UI changed.
+- [x] Deploy the rebuilt `marketPreadmission` CloudBase function, then deploy `dist-market-preadmission` to the existing `market-preadmission` hosting path because the UI changed.
 
 ```bash
 npx -y -p @cloudbase/cli tcb fn deploy marketPreadmission --install-dependency true -e yuecheng-survey-d4fucklsf6b68aaf
 npx -y -p @cloudbase/cli tcb hosting deploy ./dist-market-preadmission market-preadmission -e yuecheng-survey-d4fucklsf6b68aaf --safe --verify
 ```
 
-- [ ] Verify deployment state and the public page shell without logging patient data or invoking `createPreadmission`. Confirm the deployed function is healthy and the published assets match the current build.
+- [x] Verify deployment state and the public page shell without logging patient data or invoking `createPreadmission`. Confirm the deployed function is healthy and the published assets match the current build.
 
-- [ ] Commit generated and audit-driven changes, push the branch, and confirm the existing pull request reflects the new commits.
+- [x] Commit generated and audit-driven changes, push the branch, and confirm the existing pull request reflects the new commits.
 
 ```bash
 git add functions/marketPreadmission/index.js
