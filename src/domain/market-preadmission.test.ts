@@ -79,6 +79,9 @@ describe("market preadmission domain", () => {
     expect(() => validatePreadmissionDraft({ ...validDraft, plannedAdmissionDate: "" })).toThrow("请选择计划住院日期");
     expect(() => validatePreadmissionDraft({ ...validDraft, contactPhone: "abc" })).toThrow("联系方式格式不正确");
     expect(() => validatePreadmissionDraft({ ...validDraft, mainProblem: "x".repeat(501) })).toThrow("主要问题不能超过 500 个字");
+    expect(validatePreadmissionDraft({ ...validDraft, notes: "" }).notes).toBe("");
+    expect(validatePreadmissionDraft({ ...validDraft, notes: "备".repeat(500) }).notes).toHaveLength(500);
+    expect(() => validatePreadmissionDraft({ ...validDraft, notes: "备".repeat(501) })).toThrow("备注不能超过 500 个字");
     expect(() => validatePreadmissionDraft({ ...validDraft, clientSubmissionId: "duplicate" })).toThrow("提交标识无效");
   });
 

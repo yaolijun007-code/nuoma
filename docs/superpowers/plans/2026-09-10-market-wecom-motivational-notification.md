@@ -185,7 +185,7 @@ git commit -m "fix: surface market registration and retry errors"
 - Modify generated artifact: `functions/marketPreadmission/index.js`
 - Modify if verification identifies an in-scope defect: relevant market UI or function source and tests
 
-- [ ] Run the complete automated verification suite.
+- [x] Run the complete automated verification suite.
 
 ```bash
 npm test
@@ -196,15 +196,15 @@ npm run build:market-preadmission
 
 Expected: all tests pass; TypeScript exits 0; the CloudBase function bundle and static market build complete.
 
-- [ ] Scan tracked source and build output for accidental webhook keys, credentials, and unexpected URLs without printing matching secret values.
+- [x] Scan tracked source and build output for accidental webhook keys, credentials, and unexpected URLs without printing matching secret values.
 
 Run: `git grep -l -E 'qyapi\.weixin\.qq\.com/cgi-bin/webhook/send\?key=|MARKET_WEBHOOK_URL=' -- . ':!docs/superpowers/specs/*' ':!docs/superpowers/plans/*'`
 
 Expected: no tracked source containing a live webhook URL or configured secret value.
 
-- [ ] Start the production build locally and audit the market page at 390px width: login screen, search, historical-patient form, new-patient form, required-field feedback, notes at 0/500 characters, saved-versus-push-failed presentation, records retry error, keyboard focus, touch-target sizing, and horizontal overflow. Use synthetic records and mocked APIs only; do not submit to the real CloudBase function.
+- [x] Start the production build locally and audit the market page at 390px width: login screen, search, historical-patient form, new-patient form, required-field feedback, notes at 0/500 characters, saved-versus-push-failed presentation, records retry error, keyboard focus, touch-target sizing, and horizontal overflow. Use synthetic records and mocked APIs only; do not submit to the real CloudBase function.
 
-- [ ] Fix any verified low-risk, in-scope usability or registration defect with a regression test, then repeat the focused and full verification commands.
+- [x] Fix any verified low-risk, in-scope usability or registration defect with a regression test, then repeat the focused and full verification commands.
 
 - [ ] Deploy the rebuilt `marketPreadmission` CloudBase function, then deploy `dist-market-preadmission` to the existing `market-preadmission` hosting path because the UI changed.
 
