@@ -79,7 +79,7 @@ git commit -m "feat: enhance market WeCom notifications"
 - Modify: `functions/marketPreadmission/src/service.ts`
 - Modify: `functions/marketPreadmission/src/service.test.ts`
 
-- [ ] Add failing service tests proving initial delivery receives the saved note and a retry rebuilds the same note from the persisted record.
+- [x] Add failing service tests proving initial delivery receives the saved note and a retry rebuilds the same note from the persisted record.
 
 ```ts
 expect(notifier.send).toHaveBeenCalledWith(
@@ -88,13 +88,13 @@ expect(notifier.send).toHaveBeenCalledWith(
 );
 ```
 
-- [ ] Run the service test and confirm it fails because `messageModel` omits notes.
+- [x] Run the service test and confirm it fails because `messageModel` omits notes.
 
 Run: `npx vitest run functions/marketPreadmission/src/service.test.ts`
 
 Expected: FAIL in the new note-mapping assertions.
 
-- [ ] Map `record.notes` into `PreadmissionMessageModel` so both initial send and retry use the persisted value.
+- [x] Map `record.notes` into `PreadmissionMessageModel` so both initial send and retry use the persisted value.
 
 ```ts
 mainProblem: record.mainProblem,
@@ -103,13 +103,13 @@ notes: record.notes,
 createdByName: record.createdByName,
 ```
 
-- [ ] Re-run the service and WeCom adapter tests.
+- [x] Re-run the service and WeCom adapter tests.
 
 Run: `npx vitest run functions/marketPreadmission/src/service.test.ts functions/marketPreadmission/src/wecom.test.ts`
 
 Expected: PASS and exactly one markdown payload per send.
 
-- [ ] Commit the service change.
+- [x] Commit the service change.
 
 ```bash
 git add functions/marketPreadmission/src/service.ts functions/marketPreadmission/src/service.test.ts

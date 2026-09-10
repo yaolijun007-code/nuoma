@@ -148,7 +148,7 @@ describe("market preadmission service", () => {
 
   it("persists before sending and includes full patient identity in the notification model", async () => {
     const { service, repository, send } = makeService();
-    const result = await service.createPreadmission(user.uid, draft);
+    const result = await service.createPreadmission(user.uid, { ...draft, notes: "上午联系方便" });
     expect(repository.records).toHaveLength(1);
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0][0]).toMatchObject({
@@ -156,7 +156,9 @@ describe("market preadmission service", () => {
       contactPhone: "13800138000",
       patientType: "普通居民医保",
       intendedDepartment: "风湿免疫科",
+      notes: "上午联系方便",
     });
+    expect(send.mock.calls[0][1]).toContain("**备注**：上午联系方便");
     expect(result).toMatchObject({
       recordId: "PY-20260907-0001",
       patientType: "普通居民医保",
@@ -218,10 +220,14 @@ describe("market preadmission service", () => {
   it("allows the owner and admin to retry failed notifications but never retries sent records", async () => {
     const repository = new MemoryRepository();
     const failed = makeService(repository, new Error("timeout"));
-    const saved = await failed.service.createPreadmission(user.uid, draft);
+    const saved = await failed.service.createPreadmission(user.uid, { ...draft, notes: "下午回电" });
     const success = makeService(repository, "sent");
     const retried = await success.service.retryNotification(user.uid, saved.recordId);
     expect(retried.notificationStatus).toBe("sent");
+    expect(success.send).toHaveBeenCalledWith(
+      expect.objectContaining({ notes: "下午回电" }),
+      expect.stringContaining("**备注**：下午回电"),
+    );
     await success.service.retryNotification(admin.uid, saved.recordId);
     expect(success.send).toHaveBeenCalledTimes(1);
     await expect(success.service.retryNotification(otherUser.uid, saved.recordId, "req-denied-retry")).rejects.toBeInstanceOf(MarketServiceError);

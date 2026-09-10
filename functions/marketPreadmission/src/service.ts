@@ -116,6 +116,7 @@ function messageModel(record: PreadmissionRecord): PreadmissionMessageModel {
     intendedDepartment: record.intendedDepartment,
     mainProblem: record.mainProblem,
     contactResult: record.contactResult,
+    notes: record.notes,
     createdByName: record.createdByName,
     createdAt: record.createdAt,
   };
