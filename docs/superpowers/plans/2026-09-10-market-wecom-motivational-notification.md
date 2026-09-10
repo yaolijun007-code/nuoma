@@ -26,7 +26,7 @@
 - Modify: `src/domain/market-preadmission.ts`
 - Modify: `src/domain/market-preadmission.test.ts`
 
-- [ ] Add failing domain tests for the three contact-result presentation groups, populated and empty notes, sanitization, full patient identity, and the 4096-byte UTF-8 ceiling.
+- [x] Add failing domain tests for the three contact-result presentation groups, populated and empty notes, sanitization, full patient identity, and the 4096-byte UTF-8 ceiling.
 
 ```ts
 expect(markdown).toContain("<font color=\"info\">有效意向线索｜建议优先确认</font>");
@@ -36,13 +36,13 @@ expect(markdown).toContain(message.patientName);
 expect(markdown).toContain(message.contactPhone);
 ```
 
-- [ ] Run the focused test and confirm it fails because `notes`, the colored status line, and the byte cap are not implemented.
+- [x] Run the focused test and confirm it fails because `notes`, the colored status line, and the byte cap are not implemented.
 
 Run: `npx vitest run src/domain/market-preadmission.test.ts`
 
 Expected: FAIL in the newly added message-format tests.
 
-- [ ] Add `notes: string` to `PreadmissionMessageModel` and implement contact-result presentation metadata.
+- [x] Add `notes: string` to `PreadmissionMessageModel` and implement contact-result presentation metadata.
 
 ```ts
 const contactMessagePresentation: Record<ContactResult, {
@@ -58,15 +58,15 @@ const contactMessagePresentation: Record<ContactResult, {
 };
 ```
 
-- [ ] Implement UTF-8 byte measurement and code-point-safe ellipsis truncation, then render the approved five-part markdown structure. Use `未填写` when notes are empty and truncate only `mainProblem` and `notes` if the full message exceeds 4096 bytes.
+- [x] Implement UTF-8 byte measurement and code-point-safe ellipsis truncation, then render the approved five-part markdown structure. Use `未填写` when notes are empty and truncate only `mainProblem` and `notes` if the full message exceeds 4096 bytes.
 
-- [ ] Re-run the focused domain test and confirm it passes.
+- [x] Re-run the focused domain test and confirm it passes.
 
 Run: `npx vitest run src/domain/market-preadmission.test.ts`
 
 Expected: PASS.
 
-- [ ] Commit the domain change.
+- [x] Commit the domain change.
 
 ```bash
 git add src/domain/market-preadmission.ts src/domain/market-preadmission.test.ts

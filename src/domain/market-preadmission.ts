@@ -134,6 +134,7 @@ export interface PreadmissionMessageModel {
   intendedDepartment: IntendedDepartment;
   mainProblem: string;
   contactResult: ContactResult;
+  notes: string;
   createdByName: string;
   createdAt: string;
 }
@@ -146,6 +147,21 @@ const contactResults: Record<ContactResult, string> = {
   declined: "暂不考虑",
   other: "其他",
 };
+
+const contactMessagePresentation: Record<ContactResult, {
+  color: "info" | "warning" | "comment";
+  label: string;
+}> = {
+  patient_interested: { color: "info", label: "有效意向线索｜建议优先确认" },
+  family_interested: { color: "info", label: "有效意向线索｜建议优先确认" },
+  considering: { color: "warning", label: "待持续跟进｜请安排下一次联系" },
+  no_answer: { color: "warning", label: "待持续跟进｜请安排下一次联系" },
+  declined: { color: "comment", label: "已完成触达记录｜感谢完成真实记录" },
+  other: { color: "comment", label: "已完成触达记录｜感谢完成真实记录" },
+};
+
+const wecomMarkdownMaxBytes = 4096;
+const textEncoder = new TextEncoder();
 
 const allowedContactResults = new Set(Object.keys(contactResults));
 const allowedPatientTypes = new Set<string>(patientTypeOptions);
@@ -257,15 +273,39 @@ function shanghaiDateTime(value: string) {
   return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
 }
 
+function utf8ByteLength(value: string) {
+  return textEncoder.encode(value).byteLength;
+}
+
+function truncateUtf8(value: string, maxBytes: number) {
+  if (utf8ByteLength(value) <= maxBytes) return value;
+  const ellipsis = "…";
+  const contentBudget = maxBytes - utf8ByteLength(ellipsis);
+  if (contentBudget <= 0) return "";
+  const output: string[] = [];
+  let usedBytes = 0;
+  for (const character of value) {
+    const characterBytes = utf8ByteLength(character);
+    if (usedBytes + characterBytes > contentBudget) break;
+    output.push(character);
+    usedBytes += characterBytes;
+  }
+  return `${output.join("")}${ellipsis}`;
+}
+
 export function buildPreadmissionMarkdown(model: PreadmissionMessageModel) {
   const latestStay = model.latestAdmissionDate
     ? `${shortDate(model.latestAdmissionDate)} 至 ${shortDate(model.latestDischargeDate)}`
     : "无可用记录";
   const age = Number.isInteger(model.age) && Number(model.age) >= 0 ? `${model.age} 岁` : "年龄未记录";
-  return [
-    "### 建始民族医院｜预住院登记",
+  const presentation = contactMessagePresentation[model.contactResult] ?? contactMessagePresentation.other;
+  const mainProblem = safeInline(model.mainProblem, 500);
+  const notes = safeInline(model.notes, 500) || "未填写";
+  const render = (safeMainProblem: string, safeNotes: string) => [
+    "### 🎯 新增预住院线索",
     "",
-    `**登记编号**：${safeInline(model.recordId, 40)}`,
+    `<font color="${presentation.color}">● ${presentation.label}</font>`,
+    "",
     `**患者姓名**：${safeInline(model.patientName, 40)}`,
     `**联系电话**：${safeInline(model.contactPhone, 30)}`,
     `**基本信息**：${safeInline(model.sex, 10) || "未记录"}｜${age}`,
@@ -274,13 +314,38 @@ export function buildPreadmissionMarkdown(model: PreadmissionMessageModel) {
     "",
     `**计划住院日期**：${safeInline(model.plannedAdmissionDate, 10)}`,
     `**拟住院科室**：${safeInline(model.intendedDepartment, 30)}`,
-    `**主要问题**：${safeInline(model.mainProblem, 500)}`,
+    `**主要问题**：${safeMainProblem}`,
     `**联系结果**：${contactResults[model.contactResult] || "其他"}`,
+    `**备注**：${safeNotes}`,
     "",
-    `**登记人员**：${safeInline(model.createdByName, 40)}`,
+    `🌟 **登记人员**：${safeInline(model.createdByName, 40)}`,
+    '<font color="comment">感谢及时登记，请继续保持完整记录。</font>',
+    "",
+    `**登记编号**：${safeInline(model.recordId, 40)}`,
     `**登记时间**：${shanghaiDateTime(model.createdAt)}`,
-    "**当前状态**：预住院线索，待医务人员确认",
+    "**当前状态**：待医务人员确认",
   ].join("\n");
+
+  const fullMessage = render(mainProblem, notes);
+  if (utf8ByteLength(fullMessage) <= wecomMarkdownMaxBytes) return fullMessage;
+
+  const flexibleBudget = Math.max(0, wecomMarkdownMaxBytes - utf8ByteLength(render("", "")));
+  const mainProblemBytes = utf8ByteLength(mainProblem);
+  const notesBytes = utf8ByteLength(notes);
+  let mainProblemBudget = Math.floor(flexibleBudget * 0.55);
+  let notesBudget = flexibleBudget - mainProblemBudget;
+  if (mainProblemBytes < mainProblemBudget) {
+    notesBudget += mainProblemBudget - mainProblemBytes;
+    mainProblemBudget = mainProblemBytes;
+  }
+  if (notesBytes < notesBudget) {
+    mainProblemBudget += notesBudget - notesBytes;
+    notesBudget = notesBytes;
+  }
+  return render(
+    truncateUtf8(mainProblem, mainProblemBudget),
+    truncateUtf8(notes, notesBudget),
+  );
 }
 
 export function notificationStatusLabel(status: NotificationStatus) {

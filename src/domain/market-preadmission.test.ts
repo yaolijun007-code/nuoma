@@ -35,6 +35,7 @@ const message: PreadmissionMessageModel = {
   intendedDepartment: "风湿免疫科",
   mainProblem: "反复腹胀，希望进一步评估",
   contactResult: "patient_interested",
+  notes: "上午联系方便",
   createdByName: "市场一组",
   createdAt: "2026-09-07T08:30:00.000Z",
 };
@@ -81,12 +82,16 @@ describe("market preadmission domain", () => {
     expect(() => validatePreadmissionDraft({ ...validDraft, clientSubmissionId: "duplicate" })).toThrow("提交标识无效");
   });
 
-  it("builds a minimal WeCom message with the explicitly required full identity fields", () => {
+  it("builds a motivational WeCom message with the explicitly required full identity fields and notes", () => {
     const markdown = buildPreadmissionMarkdown(message);
+    expect(markdown).toContain("### 🎯 新增预住院线索");
+    expect(markdown).toContain('<font color="info">● 有效意向线索｜建议优先确认</font>');
     expect(markdown).toContain("**患者姓名**：张三");
     expect(markdown).toContain("**联系电话**：13800138000");
     expect(markdown).toContain("**患者类型**：普通居民医保");
     expect(markdown).toContain("**拟住院科室**：风湿免疫科");
+    expect(markdown).toContain("**备注**：上午联系方便");
+    expect(markdown).toContain("感谢及时登记，请继续保持完整记录");
     expect(markdown).toContain("待医务人员确认");
     expect(markdown).toContain("05月02日 至 05月08日");
     expect(markdown).not.toContain("住院费用");
@@ -98,9 +103,47 @@ describe("market preadmission domain", () => {
       ...message,
       patientName: "张<三>`\n[测试]",
       mainProblem: "第一行\r\n第二行",
+      notes: "方便<上午>`\n[联系]",
     });
-    expect(markdown).not.toMatch(/[<>`\[\]]/);
+    expect(markdown).not.toContain("张<三>");
+    expect(markdown).not.toContain("[测试]");
+    expect(markdown).not.toContain("方便<上午>");
+    expect(markdown).not.toContain("[联系]");
+    expect(markdown).not.toContain("`");
     expect(markdown).not.toContain("第一行\r\n第二行");
+  });
+
+  it.each([
+    ["family_interested", "info", "有效意向线索｜建议优先确认"],
+    ["considering", "warning", "待持续跟进｜请安排下一次联系"],
+    ["no_answer", "warning", "待持续跟进｜请安排下一次联系"],
+    ["declined", "comment", "已完成触达记录｜感谢完成真实记录"],
+    ["other", "comment", "已完成触达记录｜感谢完成真实记录"],
+  ] as const)("maps %s to its approved visual status", (contactResult, color, label) => {
+    const markdown = buildPreadmissionMarkdown({ ...message, contactResult });
+    expect(markdown).toContain(`<font color="${color}">● ${label}</font>`);
+  });
+
+  it("shows an explicit placeholder when notes are empty", () => {
+    expect(buildPreadmissionMarkdown({ ...message, notes: "" })).toContain("**备注**：未填写");
+  });
+
+  it("keeps full patient identity while limiting the message to 4096 UTF-8 bytes", () => {
+    const patientName = "患者".repeat(20);
+    const contactPhone = "138001380001380013800013800013";
+    const markdown = buildPreadmissionMarkdown({
+      ...message,
+      recordId: "PY-".padEnd(40, "9"),
+      patientName,
+      contactPhone,
+      sex: "未记录信息".repeat(2),
+      mainProblem: "主要问题".repeat(125),
+      notes: "跟进备注".repeat(125),
+      createdByName: "市场人员".repeat(10),
+    });
+    expect(markdown).toContain(`**患者姓名**：${patientName}`);
+    expect(markdown).toContain(`**联系电话**：${contactPhone}`);
+    expect(new TextEncoder().encode(markdown).byteLength).toBeLessThanOrEqual(4096);
   });
 
   it("uses unambiguous notification labels", () => {
