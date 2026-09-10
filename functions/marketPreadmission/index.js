@@ -47,6 +47,16 @@ var contactResults = {
   declined: "\u6682\u4E0D\u8003\u8651",
   other: "\u5176\u4ED6"
 };
+var contactMessagePresentation = {
+  patient_interested: { color: "info", label: "\u6709\u6548\u610F\u5411\u7EBF\u7D22\uFF5C\u5EFA\u8BAE\u4F18\u5148\u786E\u8BA4" },
+  family_interested: { color: "info", label: "\u6709\u6548\u610F\u5411\u7EBF\u7D22\uFF5C\u5EFA\u8BAE\u4F18\u5148\u786E\u8BA4" },
+  considering: { color: "warning", label: "\u5F85\u6301\u7EED\u8DDF\u8FDB\uFF5C\u8BF7\u5B89\u6392\u4E0B\u4E00\u6B21\u8054\u7CFB" },
+  no_answer: { color: "warning", label: "\u5F85\u6301\u7EED\u8DDF\u8FDB\uFF5C\u8BF7\u5B89\u6392\u4E0B\u4E00\u6B21\u8054\u7CFB" },
+  declined: { color: "comment", label: "\u5DF2\u5B8C\u6210\u89E6\u8FBE\u8BB0\u5F55\uFF5C\u611F\u8C22\u5B8C\u6210\u771F\u5B9E\u8BB0\u5F55" },
+  other: { color: "comment", label: "\u5DF2\u5B8C\u6210\u89E6\u8FBE\u8BB0\u5F55\uFF5C\u611F\u8C22\u5B8C\u6210\u771F\u5B9E\u8BB0\u5F55" }
+};
+var wecomMarkdownMaxBytes = 4096;
+var textEncoder = new TextEncoder();
 var allowedContactResults = new Set(Object.keys(contactResults));
 var allowedPatientTypes = new Set(patientTypeOptions);
 var allowedIntendedDepartments = new Set(intendedDepartmentOptions);
@@ -142,13 +152,35 @@ function shanghaiDateTime(value) {
   }).formatToParts(date).map((part) => [part.type, part.value]));
   return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
 }
+function utf8ByteLength(value) {
+  return textEncoder.encode(value).byteLength;
+}
+function truncateUtf8(value, maxBytes) {
+  if (utf8ByteLength(value) <= maxBytes) return value;
+  const ellipsis = "\u2026";
+  const contentBudget = maxBytes - utf8ByteLength(ellipsis);
+  if (contentBudget <= 0) return "";
+  const output = [];
+  let usedBytes = 0;
+  for (const character of value) {
+    const characterBytes = utf8ByteLength(character);
+    if (usedBytes + characterBytes > contentBudget) break;
+    output.push(character);
+    usedBytes += characterBytes;
+  }
+  return `${output.join("")}${ellipsis}`;
+}
 function buildPreadmissionMarkdown(model) {
   const latestStay = model.latestAdmissionDate ? `${shortDate(model.latestAdmissionDate)} \u81F3 ${shortDate(model.latestDischargeDate)}` : "\u65E0\u53EF\u7528\u8BB0\u5F55";
   const age = Number.isInteger(model.age) && Number(model.age) >= 0 ? `${model.age} \u5C81` : "\u5E74\u9F84\u672A\u8BB0\u5F55";
-  return [
-    "### \u5EFA\u59CB\u6C11\u65CF\u533B\u9662\uFF5C\u9884\u4F4F\u9662\u767B\u8BB0",
+  const presentation = contactMessagePresentation[model.contactResult] ?? contactMessagePresentation.other;
+  const mainProblem = safeInline(model.mainProblem, 500);
+  const notes = safeInline(model.notes, 500) || "\u672A\u586B\u5199";
+  const render = (safeMainProblem, safeNotes) => [
+    "### \u{1F3AF} \u65B0\u589E\u9884\u4F4F\u9662\u7EBF\u7D22",
     "",
-    `**\u767B\u8BB0\u7F16\u53F7**\uFF1A${safeInline(model.recordId, 40)}`,
+    `<font color="${presentation.color}">\u25CF ${presentation.label}</font>`,
+    "",
     `**\u60A3\u8005\u59D3\u540D**\uFF1A${safeInline(model.patientName, 40)}`,
     `**\u8054\u7CFB\u7535\u8BDD**\uFF1A${safeInline(model.contactPhone, 30)}`,
     `**\u57FA\u672C\u4FE1\u606F**\uFF1A${safeInline(model.sex, 10) || "\u672A\u8BB0\u5F55"}\uFF5C${age}`,
@@ -157,13 +189,36 @@ function buildPreadmissionMarkdown(model) {
     "",
     `**\u8BA1\u5212\u4F4F\u9662\u65E5\u671F**\uFF1A${safeInline(model.plannedAdmissionDate, 10)}`,
     `**\u62DF\u4F4F\u9662\u79D1\u5BA4**\uFF1A${safeInline(model.intendedDepartment, 30)}`,
-    `**\u4E3B\u8981\u95EE\u9898**\uFF1A${safeInline(model.mainProblem, 500)}`,
+    `**\u4E3B\u8981\u95EE\u9898**\uFF1A${safeMainProblem}`,
     `**\u8054\u7CFB\u7ED3\u679C**\uFF1A${contactResults[model.contactResult] || "\u5176\u4ED6"}`,
+    `**\u5907\u6CE8**\uFF1A${safeNotes}`,
     "",
-    `**\u767B\u8BB0\u4EBA\u5458**\uFF1A${safeInline(model.createdByName, 40)}`,
+    `\u{1F31F} **\u767B\u8BB0\u4EBA\u5458**\uFF1A${safeInline(model.createdByName, 40)}`,
+    '<font color="comment">\u611F\u8C22\u53CA\u65F6\u767B\u8BB0\uFF0C\u8BF7\u7EE7\u7EED\u4FDD\u6301\u5B8C\u6574\u8BB0\u5F55\u3002</font>',
+    "",
+    `**\u767B\u8BB0\u7F16\u53F7**\uFF1A${safeInline(model.recordId, 40)}`,
     `**\u767B\u8BB0\u65F6\u95F4**\uFF1A${shanghaiDateTime(model.createdAt)}`,
-    "**\u5F53\u524D\u72B6\u6001**\uFF1A\u9884\u4F4F\u9662\u7EBF\u7D22\uFF0C\u5F85\u533B\u52A1\u4EBA\u5458\u786E\u8BA4"
+    "**\u5F53\u524D\u72B6\u6001**\uFF1A\u5F85\u533B\u52A1\u4EBA\u5458\u786E\u8BA4"
   ].join("\n");
+  const fullMessage = render(mainProblem, notes);
+  if (utf8ByteLength(fullMessage) <= wecomMarkdownMaxBytes) return fullMessage;
+  const flexibleBudget = Math.max(0, wecomMarkdownMaxBytes - utf8ByteLength(render("", "")));
+  const mainProblemBytes = utf8ByteLength(mainProblem);
+  const notesBytes = utf8ByteLength(notes);
+  let mainProblemBudget = Math.floor(flexibleBudget * 0.55);
+  let notesBudget = flexibleBudget - mainProblemBudget;
+  if (mainProblemBytes < mainProblemBudget) {
+    notesBudget += mainProblemBudget - mainProblemBytes;
+    mainProblemBudget = mainProblemBytes;
+  }
+  if (notesBytes < notesBudget) {
+    mainProblemBudget += notesBudget - notesBytes;
+    notesBudget = notesBytes;
+  }
+  return render(
+    truncateUtf8(mainProblem, mainProblemBudget),
+    truncateUtf8(notes, notesBudget)
+  );
 }
 
 // functions/marketPreadmission/src/service.ts
@@ -221,6 +276,7 @@ function messageModel(record) {
     intendedDepartment: record.intendedDepartment,
     mainProblem: record.mainProblem,
     contactResult: record.contactResult,
+    notes: record.notes,
     createdByName: record.createdByName,
     createdAt: record.createdAt
   };
