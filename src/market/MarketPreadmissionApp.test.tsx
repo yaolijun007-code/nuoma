@@ -97,6 +97,7 @@ describe("market preadmission app", () => {
     await user.click(screen.getByRole("button", { name: /选择患者 张三/ }));
     expect(await screen.findByText("共住院 3 次")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "住院记录" })).toBeInTheDocument();
+    expect(screen.getByLabelText("本次联系电话")).toHaveValue("13800138000");
     expect(screen.getByText("出院日期未记录")).toBeInTheDocument();
     expect(screen.queryByText(/住院费用|家庭地址|医保编号/)).not.toBeInTheDocument();
   });
