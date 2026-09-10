@@ -1,0 +1,14 @@
+{
+  "name": "market-preadmission-function",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "3.18.5"
+  },
+  "overrides": {
+    "axios": "1.19.0",
+    "lodash.set": "npm:set-value@4.1.0",
+    "lodash.unset": "npm:unset-value@2.0.1"
+  }
+}

@@ -2,12 +2,12 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import config from "../../cloudbaserc.json";
-import viteConfig, { resolveBrandBase, resolveBrandMetadata } from "../../vite.config";
+import viteConfig, { assertMarketBuildEnvironment, resolveBrandBase, resolveBrandMetadata } from "../../vite.config";
 
 describe("CloudBase function configuration", () => {
   it("deploys event handlers behind SCF gateway routes", () => {
-    expect(config.functions.map((fn) => fn.type)).toEqual(["Event", "Event"]);
-    expect(config.functions.map((fn) => fn.handler)).toEqual(["index.main", "index.main"]);
+    expect(config.functions.map((fn) => fn.type)).toEqual(["Event", "Event", "Event"]);
+    expect(config.functions.map((fn) => fn.handler)).toEqual(["index.main", "index.main", "index.main"]);
     expect(config.functions.some((fn) => "envVariables" in fn)).toBe(false);
   });
 
@@ -17,7 +17,7 @@ describe("CloudBase function configuration", () => {
   });
 
   it("pins cloud function SDKs to the audited runtime dependency set", () => {
-    const packages = ["submitSurvey", "adminSurvey"].map((name) => JSON.parse(readFileSync(
+    const packages = ["submitSurvey", "adminSurvey", "marketPreadmission"].map((name) => JSON.parse(readFileSync(
       new URL(`../../functions/${name}/package.json`, import.meta.url),
       "utf8",
     )));
@@ -33,7 +33,7 @@ describe("CloudBase function configuration", () => {
   });
 
   it("initializes CloudBase without repeating current-environment warnings", () => {
-    for (const name of ["submitSurvey", "adminSurvey"]) {
+    for (const name of ["submitSurvey", "adminSurvey", "marketPreadmission"]) {
       const source = readFileSync(
         new URL(`../../functions/${name}/src/index.ts`, import.meta.url),
         "utf8",
@@ -51,6 +51,11 @@ describe("CloudBase function configuration", () => {
     expect(resolveBrandBase("hospital")).toBe("/health-survey/");
     expect(resolveBrandBase("hospital-female")).toBe("/women-health-survey/");
     expect(resolveBrandBase("nuoma-yuanyi")).toBe("/nuoma-yuanyi-survey/");
+    expect(resolveBrandMetadata("market-preadmission")).toEqual({
+      base: "/market-preadmission/",
+      title: "患者预住院登记｜建始民族医院",
+      description: "建始民族医院患者预住院登记系统",
+    });
     expect(resolveBrandMetadata("hospital-female")).toMatchObject({
       title: "女性健康与功能状态问卷｜建始民族医院",
       description: "建始民族医院女性健康与功能状态问卷",
@@ -62,11 +67,58 @@ describe("CloudBase function configuration", () => {
     expect(() => resolveBrandBase("unknown")).toThrow("未知问卷品牌");
   });
 
+  it("refuses to build the market app without both publishable CloudBase values", () => {
+    expect(() => assertMarketBuildEnvironment("market-preadmission", {})).toThrow("VITE_CLOUDBASE_ENV_ID");
+    expect(() => assertMarketBuildEnvironment("market-preadmission", {
+      VITE_CLOUDBASE_ENV_ID: "example-env",
+    })).toThrow("VITE_CLOUDBASE_ACCESS_KEY");
+    expect(() => assertMarketBuildEnvironment("market-preadmission", {
+      VITE_CLOUDBASE_ENV_ID: "example-env",
+      VITE_CLOUDBASE_ACCESS_KEY: "publishable-key",
+    })).not.toThrow();
+    expect(() => assertMarketBuildEnvironment("hospital", {})).not.toThrow();
+  });
+
   it("passes documents directly to the server-side CloudBase SDK", () => {
     const submitSource = readFileSync(new URL("../../functions/submitSurvey/src/index.ts", import.meta.url), "utf8");
     const adminSource = readFileSync(new URL("../../functions/adminSurvey/src/index.ts", import.meta.url), "utf8");
     expect(submitSource).not.toContain(".add({ data:");
     expect(adminSource).not.toContain(".add({ data:");
     expect(submitSource).toContain("DEFAULT_ALLOWED_ORIGIN");
+  });
+
+  it("keeps every market collection closed to direct client reads and writes", () => {
+    const rules = JSON.parse(readFileSync(
+      new URL("../../cloudbase/database-deny-all.rules.json", import.meta.url),
+      "utf8",
+    ));
+    for (const collection of [
+      "hospital_market_users",
+      "hospital_patients",
+      "hospital_encounters",
+      "hospital_diagnosis_stats",
+      "hospital_preadmissions",
+      "hospital_preadmission_notification_logs",
+      "hospital_market_audit_logs",
+    ]) {
+      expect(rules[collection]).toEqual({ read: false, write: false });
+    }
+  });
+
+  it("versions the required unique and query indexes for market collections", () => {
+    const indexes = JSON.parse(readFileSync(
+      new URL("../../cloudbase/market-indexes.json", import.meta.url),
+      "utf8",
+    ));
+    expect(indexes.hospital_patients).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "patient_id_unique", unique: true }),
+      expect.objectContaining({ name: "name", unique: false }),
+      expect.objectContaining({ name: "phone", unique: false }),
+    ]));
+    expect(indexes.hospital_preadmissions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "record_id_unique", unique: true }),
+      expect.objectContaining({ name: "submission_id_unique", unique: true }),
+      expect.objectContaining({ name: "creator_created_at", unique: false }),
+    ]));
   });
 });

@@ -3,5 +3,12 @@
   "health_respondent_profiles": { "read": false, "write": false },
   "health_survey_answers": { "read": false, "write": false },
   "health_assessment_results": { "read": false, "write": false },
-  "health_audit_logs": { "read": false, "write": false }
+  "health_audit_logs": { "read": false, "write": false },
+  "hospital_market_users": { "read": false, "write": false },
+  "hospital_patients": { "read": false, "write": false },
+  "hospital_encounters": { "read": false, "write": false },
+  "hospital_diagnosis_stats": { "read": false, "write": false },
+  "hospital_preadmissions": { "read": false, "write": false },
+  "hospital_preadmission_notification_logs": { "read": false, "write": false },
+  "hospital_market_audit_logs": { "read": false, "write": false }
 }
